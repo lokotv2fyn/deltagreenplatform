@@ -12,7 +12,9 @@
     "email_placeholder": "Din e-mailadresse",
     "submit": "Send login-link",
     "sending": "Sender…",
-    "sent": "Tjek din indbakke — vi har sendt et login-link til"
+    "sent": "Tjek din indbakke — vi har sendt et login-link til",
+    "not_authorized": "Denne e-mailadresse har ikke adgang til platformen.",
+    "error": "Der opstod en fejl. Prøv igen."
   },
   "dashboard": {
     "classified": "Program // Klassificeret adgang",

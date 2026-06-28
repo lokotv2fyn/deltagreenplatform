@@ -12,7 +12,9 @@
     "email_placeholder": "Your email address",
     "submit": "Send login link",
     "sending": "Sending…",
-    "sent": "Check your inbox — we sent a login link to"
+    "sent": "Check your inbox — we sent a login link to",
+    "not_authorized": "This email address does not have access to the platform.",
+    "error": "Something went wrong. Please try again."
   },
   "dashboard": {
     "classified": "Program // Classified access",

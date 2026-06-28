@@ -24,6 +24,7 @@
           {{ loading ? t('login.sending') : t('login.submit') }}
         </button>
         <p v-if="error" class="text-sm text-red-400">{{ error }}</p>
+        <p v-if="notAuthorized" class="text-sm text-red-400">{{ t('login.not_authorized') }}</p>
       </form>
 
       <div v-else class="text-neutral-300 text-sm leading-relaxed">
@@ -53,7 +54,6 @@
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { supabase } from '../lib/supabase'
 import { useLang } from '../composables/useLang'
 
 const { t } = useI18n()
@@ -64,20 +64,29 @@ const email = ref('')
 const loading = ref(false)
 const sent = ref(false)
 const error = ref('')
+const notAuthorized = ref(false)
 
 async function sendMagicLink() {
   loading.value = true
   error.value = ''
+  notAuthorized.value = false
 
   const redirectTo = `${window.location.origin}${route.query.redirect || '/dashboard'}`
 
-  const { error: err } = await supabase.auth.signInWithOtp({
-    email: email.value,
-    options: { emailRedirectTo: redirectTo },
-  })
+  const res = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/request-magic-link`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.value, redirectTo }),
+    }
+  )
 
-  if (err) {
-    error.value = err.message
+  if (res.status === 403) {
+    notAuthorized.value = true
+  } else if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    error.value = body.error ?? t('login.error')
   } else {
     sent.value = true
   }
