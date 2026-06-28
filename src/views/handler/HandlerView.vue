@@ -144,9 +144,9 @@
                 {{ agent.sheet?.data?.name || agent.displayName }}
               </span>
               <span class="text-xs shrink-0" style="color: #2a3a2e;">{{ agent.displayName }}</span>
-              <span v-if="agent.sheet?.data?.sanCurrent != null"
+              <span v-if="agentSAN(agent.sheet) != null"
                     class="text-xs font-mono shrink-0 ml-2" style="color: #506858;">
-                SAN {{ agent.sheet.data.sanCurrent }}
+                SAN {{ agentSAN(agent.sheet) }}
               </span>
               <svg class="w-4 h-4 transition-transform shrink-0 ml-1"
                    :class="selectedAgent === agent.userId ? 'rotate-180' : ''"
@@ -486,6 +486,15 @@ async function doStartSession() {
 
 async function doStopSession() {
   await session.stopSession()
+}
+
+// ─── Agents ──────────────────────────────────────────────────────────────────
+function agentSAN(sheet) {
+  const d = sheet?.data
+  if (!d) return null
+  if (d.sanCurrent != null) return d.sanCurrent
+  if (d.stats?.pow != null) return d.stats.pow * 5
+  return null
 }
 
 // ─── Formatting ──────────────────────────────────────────────────────────────
