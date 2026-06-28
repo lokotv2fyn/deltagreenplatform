@@ -178,6 +178,40 @@
         <CharacterSheet v-else :group-id="groupId" :initial-data="character.mySheet?.data ?? null" />
       </template>
 
+      <!-- ─── PROFIL ────────────────────────────────────────────── -->
+      <template v-else-if="activeTab === 'profil'">
+        <div class="max-w-sm space-y-6">
+          <div>
+            <p class="text-xs font-mono tracking-[0.2em] uppercase mb-4" style="color: #506858;">Agent-identitet</p>
+            <label class="text-xs font-mono tracking-[0.15em] uppercase block mb-2" style="color: #506858;">
+              Kaldenavn
+            </label>
+            <input
+              v-model="displayName"
+              type="text"
+              placeholder="Hvad skal de andre kalde dig?"
+              class="w-full font-mono text-sm px-3 py-2 focus:outline-none"
+              style="background: #0d0d0d; border: 1px solid #2a2a2a; color: #c4c4c4;"
+              @keyup.enter="saveDisplayName"
+            />
+            <p class="text-xs font-mono mt-2" style="color: #333;">
+              Vises for Handler og andre spillere.
+            </p>
+          </div>
+          <div class="flex items-center gap-4">
+            <button
+              @click="saveDisplayName"
+              :disabled="!displayName.trim() || savingName"
+              class="text-xs font-mono tracking-[0.15em] uppercase px-4 py-2 transition-colors disabled:opacity-30"
+              style="border: 1px solid #4a7c59; color: #4a7c59;"
+            >
+              {{ savingName ? 'Gemmer…' : 'Gem' }}
+            </button>
+            <span v-if="nameSaved" class="text-xs font-mono" style="color: #4a7c59;">Gemt.</span>
+          </div>
+        </div>
+      </template>
+
     </div>
 
     <!-- Reveal interrupt -->
@@ -244,6 +278,7 @@ const tabs = [
   { id: 'visual',    label: 'Visuelt' },
   { id: 'notes',     label: 'Mine noter' },
   { id: 'character', label: 'Karakter' },
+  { id: 'profil',    label: 'Profil' },
 ]
 
 // ─── Notes ───────────────────────────────────────────────────────────────────
@@ -299,7 +334,24 @@ async function deleteNote(noteId) {
 watch(activeTab, (tab) => {
   if (tab === 'notes') loadNotes()
   if (tab === 'character') character.loadMySheet(groupId)
+  if (tab === 'profil') displayName.value = auth.profile?.display_name ?? ''
 })
+
+// ─── Profil ──────────────────────────────────────────────────────────────────
+const displayName = ref(auth.profile?.display_name ?? '')
+const savingName = ref(false)
+const nameSaved = ref(false)
+
+async function saveDisplayName() {
+  if (!displayName.value.trim()) return
+  savingName.value = true
+  nameSaved.value = false
+  await supabase.from('profiles').update({ display_name: displayName.value.trim() }).eq('id', auth.user.id)
+  await auth.fetchProfile()
+  savingName.value = false
+  nameSaved.value = true
+  setTimeout(() => { nameSaved.value = false }, 2000)
+}
 
 // ─── Settings ───────────────────────────────────────────────────────────────
 async function loadSettings() {

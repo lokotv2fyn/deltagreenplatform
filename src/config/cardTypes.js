@@ -57,7 +57,7 @@ export const CARD_TYPES = {
     fields: [
       { key: 'sender', label: 'Afsender', type: 'text', required: true },
       { key: 'message', label: 'Besked', type: 'textarea' },
-      { key: 'time', label: 'Tidspunkt (in-fiction)', type: 'text', placeholder: 'fx 02:47', required: false },
+      { key: 'time', label: 'Tidspunkt', type: 'text', placeholder: 'fx 02:47', required: false },
     ],
   },
 }
@@ -93,7 +93,7 @@ export const PLAYER_CARD_TYPES = {
     fields: [
       { key: 'sender', label: 'Afsender', type: 'text', required: true },
       { key: 'message', label: 'Indhold', type: 'textarea' },
-      { key: 'time', label: 'Tidspunkt (in-fiction)', type: 'text', placeholder: 'fx 02:47', required: false },
+      { key: 'time', label: 'Tidspunkt', type: 'text', placeholder: 'fx 02:47', required: false },
     ],
   },
   handout: {
