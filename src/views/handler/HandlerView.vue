@@ -472,10 +472,11 @@ async function saveDescription() {
 }
 
 async function regenerateInvite() {
-  const newCode = Math.random().toString(36).substring(2, 10)
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-  await supabase.from('groups').update({ invite_code: newCode, invite_expires_at: expiresAt }).eq('id', groupId)
-  await loadInviteData()
+  const { data } = await supabase.rpc('regenerate_invite_code', { group_id: groupId })
+  if (data?.[0]) {
+    inviteCode.value = data[0].invite_code ?? ''
+    inviteExpiresAt.value = data[0].invite_expires_at ?? null
+  }
 }
 
 async function copyInvite() {
