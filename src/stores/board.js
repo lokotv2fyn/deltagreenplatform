@@ -50,6 +50,7 @@ export const useBoardStore = defineStore('board', () => {
   }
 
   async function createCard({ groupId, sessionId, type, label, data, origin = 'handler', revealed = false }) {
+    if (!_groupId) return null
     const { data: { user } } = await supabase.auth.getUser()
     const { data: card, error } = await supabase
       .from('cards')
@@ -70,12 +71,14 @@ export const useBoardStore = defineStore('board', () => {
       const pos = getPos(card)
       if (pos) { pos.x = x; pos.y = y }
     }
+    if (!_groupId) return
     const { error } = await supabase.from('card_positions').update({ x, y }).eq('card_id', cardId)
     if (error) throw error
   }
 
   async function setRevealed(cardId, revealed) {
     cards.value = cards.value.map(c => c.id === cardId ? { ...c, revealed } : c)
+    if (!_groupId) return
     const { error } = await supabase.from('cards').update({ revealed }).eq('id', cardId)
     if (error) throw error
     if (revealed && _groupId) {
@@ -92,6 +95,7 @@ export const useBoardStore = defineStore('board', () => {
         : [{ card_id: cardId, minimized }]
       return { ...c, card_positions: updated }
     })
+    if (!_groupId) return
     const { error } = await supabase
       .from('card_positions')
       .upsert({ card_id: cardId, minimized }, { onConflict: 'card_id' })
@@ -100,6 +104,7 @@ export const useBoardStore = defineStore('board', () => {
 
   async function updateCard(cardId, { label, data, revealed }) {
     cards.value = cards.value.map(c => c.id === cardId ? { ...c, label, data, revealed } : c)
+    if (!_groupId) return
     const { error } = await supabase.from('cards').update({ label, data, revealed }).eq('id', cardId)
     if (error) throw error
   }
@@ -107,6 +112,7 @@ export const useBoardStore = defineStore('board', () => {
   async function deleteCard(cardId) {
     cards.value = cards.value.filter(c => c.id !== cardId)
     chainLinks.value = chainLinks.value.filter(l => l.card_id !== cardId)
+    if (!_groupId) return
     const { error } = await supabase.from('cards').delete().eq('id', cardId)
     if (error) throw error
   }
@@ -117,6 +123,10 @@ export const useBoardStore = defineStore('board', () => {
     const nextPos = chainLinks.value.length
       ? Math.max(...chainLinks.value.map(l => l.position)) + 1
       : 1
+    if (!_groupId) {
+      chainLinks.value.push({ id: `local-${cardId}`, card_id: cardId, position: nextPos })
+      return
+    }
     const { data: { user } } = await supabase.auth.getUser()
     const { data, error } = await supabase
       .from('chain_links')
@@ -129,6 +139,7 @@ export const useBoardStore = defineStore('board', () => {
 
   async function removeFromChain(cardId) {
     chainLinks.value = chainLinks.value.filter(l => l.card_id !== cardId)
+    if (!_groupId) return
     const { error } = await supabase.from('chain_links').delete().eq('card_id', cardId)
     if (error) throw error
   }
@@ -144,6 +155,7 @@ export const useBoardStore = defineStore('board', () => {
       if (l.id === swap.id) return { ...l, position: curr.position }
       return l
     })
+    if (!_groupId) return
     await Promise.all([
       supabase.from('chain_links').update({ position: swap.position }).eq('id', curr.id),
       supabase.from('chain_links').update({ position: curr.position }).eq('id', swap.id),
@@ -151,10 +163,11 @@ export const useBoardStore = defineStore('board', () => {
   }
 
   async function setChainVisible(visible) {
+    chainVisible.value = visible
+    if (!_groupId) return
     await supabase
       .from('chain_state')
       .upsert({ group_id: _groupId, hidden: !visible }, { onConflict: 'group_id' })
-    chainVisible.value = visible
   }
 
   // ─── Realtime ──────────────────────────────────────────────────────────────

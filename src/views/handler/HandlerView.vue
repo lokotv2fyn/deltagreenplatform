@@ -131,25 +131,41 @@
         <div v-else-if="!character.allSheets.length" class="text-xs font-mono" style="color: #506858;">
           {{ t('agents.empty') }}
         </div>
-        <div v-else>
-          <div class="flex gap-0 mb-6" style="border-bottom: 1px solid #1a1a1a;">
-            <button v-for="agent in character.allSheets" :key="agent.userId"
-                    @click="selectedAgent = agent.userId"
-                    class="text-xs font-mono tracking-[0.1em] uppercase px-4 py-2 transition-colors tab-btn"
-                    :style="selectedAgent === agent.userId
-                      ? 'border-bottom: 1px solid #888; color: #c4c4c4; margin-bottom: -1px;'
-                      : 'border-bottom: 1px solid transparent; color: #506858; margin-bottom: -1px;'">
-              {{ agent.displayName }}
+        <div v-else class="max-w-3xl space-y-2">
+          <div v-for="agent in character.allSheets" :key="agent.userId"
+               style="border: 1px solid #1a1a1a;">
+
+            <!-- Accordion header -->
+            <button class="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
+                    :style="selectedAgent === agent.userId ? 'background: #0d0d0d;' : 'background: #080808;'"
+                    @click="selectedAgent = selectedAgent === agent.userId ? null : agent.userId">
+              <span class="text-xs tracking-[0.15em] uppercase shrink-0" style="color: #3d6b4a;">Agent</span>
+              <span class="flex-1 font-mono truncate" style="color: #c4c4c4;">
+                {{ agent.sheet?.data?.name || agent.displayName }}
+              </span>
+              <span class="text-xs shrink-0" style="color: #2a3a2e;">{{ agent.displayName }}</span>
+              <span v-if="agent.sheet?.data?.sanCurrent != null"
+                    class="text-xs font-mono shrink-0 ml-2" style="color: #506858;">
+                SAN {{ agent.sheet.data.sanCurrent }}
+              </span>
+              <svg class="w-4 h-4 transition-transform shrink-0 ml-1"
+                   :class="selectedAgent === agent.userId ? 'rotate-180' : ''"
+                   style="color: #2a2a2a;"
+                   xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+              </svg>
             </button>
-          </div>
-          <template v-for="agent in character.allSheets" :key="agent.userId">
-            <div v-if="selectedAgent === agent.userId">
+
+            <!-- Character sheet -->
+            <div v-if="selectedAgent === agent.userId"
+                 class="px-6 py-6"
+                 style="border-top: 1px solid #1a1a1a; background: #080808;">
               <p v-if="!agent.sheet" class="text-xs font-mono" style="color: #506858;">
                 {{ t('agents.no_sheet', { name: agent.displayName }) }}
               </p>
               <CharacterSheet v-else :group-id="groupId" :initial-data="agent.sheet.data" :readonly="true" />
             </div>
-          </template>
+          </div>
         </div>
       </template>
 
@@ -489,9 +505,6 @@ watch(activeTab, async (tab) => {
   if (tab === 'settings') loadSettings()
   if (tab === 'agents') {
     await character.loadAllSheets(groupId)
-    if (!selectedAgent.value && character.allSheets.length) {
-      selectedAgent.value = character.allSheets[0].userId
-    }
   }
 })
 
