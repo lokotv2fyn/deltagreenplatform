@@ -1,11 +1,33 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+const SITE_URL = Deno.env.get('SITE_URL') ?? ''
+
+function getAllowedOrigin(requestOrigin: string | null): string | null {
+  if (!requestOrigin) return null
+  if (SITE_URL && requestOrigin === SITE_URL) return requestOrigin
+  if (/^http:\/\/localhost(:\d+)?$/.test(requestOrigin)) return requestOrigin
+  return null
+}
+
+function isAllowedRedirect(redirectTo: string): boolean {
+  try {
+    const redirectOrigin = new URL(redirectTo).origin
+    if (SITE_URL && redirectOrigin === new URL(SITE_URL).origin) return true
+    if (/^http:\/\/localhost(:\d+)?$/.test(redirectOrigin)) return true
+    return false
+  } catch {
+    return false
+  }
 }
 
 Deno.serve(async (req) => {
+  const requestOrigin = req.headers.get('origin')
+  const allowedOrigin = getAllowedOrigin(requestOrigin)
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': allowedOrigin ?? '',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  }
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -15,6 +37,13 @@ Deno.serve(async (req) => {
 
     if (!email) {
       return new Response(JSON.stringify({ error: 'email_required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (redirectTo && !isAllowedRedirect(redirectTo)) {
+      return new Response(JSON.stringify({ error: 'invalid_redirect' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -38,7 +67,6 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Trigger magic link via Supabase auth REST API (same as signInWithOtp)
     const res = await fetch(`${Deno.env.get('SUPABASE_URL')}/auth/v1/otp`, {
       method: 'POST',
       headers: {

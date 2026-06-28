@@ -11,7 +11,7 @@ export const useGroupsStore = defineStore('groups', () => {
     const { data: { user } } = await supabase.auth.getUser()
     const { data, error } = await supabase
       .from('group_members')
-      .select('role, group:groups(id, name, description, invite_code, invite_expires_at, current_session_id)')
+      .select('role, group:groups(id, name, description, current_session_id)')
       .eq('user_id', user.id)
     if (!error) memberships.value = data ?? []
     loading.value = false

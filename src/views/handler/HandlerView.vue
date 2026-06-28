@@ -213,7 +213,7 @@
             <p class="text-xs font-mono tracking-[0.2em] uppercase mb-4" style="color: #506858; border-bottom: 1px solid #1a1a1a; padding-bottom: 0.5rem;">
               {{ t('settings.invite_title') }}
             </p>
-            <div v-if="session.group?.invite_code" class="space-y-2">
+            <div v-if="inviteCode" class="space-y-2">
               <div class="flex items-center gap-2">
                 <code class="flex-1 px-3 py-2 text-xs font-mono select-all"
                       style="background: #0d0d0d; border: 1px solid #1a1a1a; color: #888;">
@@ -225,8 +225,8 @@
                   {{ copied ? t('settings.copied') : t('settings.copy') }}
                 </button>
               </div>
-              <p v-if="session.group.invite_expires_at" class="text-xs font-mono" style="color: #506858;">
-                {{ t('settings.expires', { date: formatDate(session.group.invite_expires_at) }) }}
+              <p v-if="inviteExpiresAt" class="text-xs font-mono" style="color: #506858;">
+                {{ t('settings.expires', { date: formatDate(inviteExpiresAt) }) }}
               </p>
               <button @click="regenerateInvite"
                       class="text-xs font-mono transition-colors action-btn-text"
@@ -425,12 +425,22 @@ const autoReveal = ref(true)
 const groupName = ref('')
 const groupDescription = ref('')
 const copied = ref(false)
+const inviteCode = ref('')
+const inviteExpiresAt = ref(null)
 
 const inviteUrl = computed(() =>
-  session.group?.invite_code
-    ? `${window.location.origin}/join/${session.group.invite_code}`
+  inviteCode.value
+    ? `${window.location.origin}/join/${inviteCode.value}`
     : ''
 )
+
+async function loadInviteData() {
+  const { data } = await supabase.rpc('get_invite_code', { group_id: groupId })
+  if (data?.[0]) {
+    inviteCode.value = data[0].invite_code ?? ''
+    inviteExpiresAt.value = data[0].invite_expires_at ?? null
+  }
+}
 
 async function loadSettings() {
   const { data } = await supabase
@@ -441,6 +451,7 @@ async function loadSettings() {
   if (data) autoReveal.value = data.auto_reveal_player_cards
   groupName.value = session.group?.name ?? ''
   groupDescription.value = session.group?.description ?? ''
+  await loadInviteData()
 }
 
 async function saveAutoReveal() {
@@ -464,7 +475,7 @@ async function regenerateInvite() {
   const newCode = Math.random().toString(36).substring(2, 10)
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
   await supabase.from('groups').update({ invite_code: newCode, invite_expires_at: expiresAt }).eq('id', groupId)
-  await session.loadGroup(groupId)
+  await loadInviteData()
 }
 
 async function copyInvite() {

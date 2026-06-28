@@ -15,7 +15,7 @@ export const useSessionStore = defineStore('session', () => {
     loading.value = true
     const { data, error } = await supabase
       .from('groups')
-      .select('*, current_session:sessions!current_session_id(*)')
+      .select('id, name, description, created_by, current_session_id, created_at, current_session:sessions!current_session_id(*)')
       .eq('id', groupId)
       .single()
     if (!error) {
