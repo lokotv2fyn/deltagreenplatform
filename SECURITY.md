@@ -4,7 +4,7 @@
 
 If you discover a security vulnerability, please do **not** open a public GitHub issue.
 
-Send a description of the issue to **loko@tv2fyn.dk** with the subject line `[SECURITY] deltagreenplatform`.
+Send a description of the issue to **kontakt@louisekoustrup.dk** with the subject line `[SECURITY] deltagreenplatform`.
 
 Include:
 - What the vulnerability is and where it exists
