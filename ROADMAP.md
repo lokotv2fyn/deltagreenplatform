@@ -49,6 +49,7 @@
 
 ## Fremtid
 
+- **Sprog** — kildekode refaktoreres til engelsk (variabelnavne, kommentarer); UI får language switcher dansk/engelsk
 - Presence: live musemarkører på visuelt canvas
 - Spiller-tokens på canvas
 - Rød tråd: mange-til-mange forbindelser, drag-and-drop direkte på canvas
