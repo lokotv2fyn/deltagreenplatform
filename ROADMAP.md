@@ -1,60 +1,58 @@
 # Platform — roadmap
 
-## Bygget (v0.513)
+## Built (v0.513)
 
-### Auth og adgang
+### Auth and access
 - Magic link login (Supabase Auth)
-- Invite-flow: handler genererer link, spiller tilmeldes automatisk
-- RLS: handler ser alt inkl. spoilers, spillere ser kun revealed kort + egne
-- Router guard: handler-route beskyttet mod spillere
+- Invite flow: handler generates link, player is automatically added to the group
+- RLS: handler sees everything including spoilers; players see only revealed cards + their own
+- Router guard: handler route protected against players
 
 ### Board
-- Kort: opret, rediger, slet — handler og spiller med separate tilladelser
-- Reveal: handler kan reveal/skjule kort for spillere
-- Rød tråd: tilføj/fjern/omsorter kort i kæde, synlighed kan skjules af handler
-- Realtime sync: alle ændringer propagerer live til alle klienter (migration 006 + 007)
-- Visuelt canvas: drag-and-drop positionering, sidebar med kortdetaljer
+- Cards: create, edit, delete — handler and player with separate permissions
+- Reveal: handler can reveal/hide cards for players
+- Red thread: add/remove/reorder cards in the chain; visibility can be hidden by handler
+- Realtime sync: all changes propagate live to all clients (migration 006 + 007)
+- Visual canvas: drag-and-drop positioning, sidebar with card details
 
 ### Session
-- Start/stop/pause session
-- Boardet er gruppe-scopet og overlever session-stop
+- Start / stop / pause session
+- Board is group-scoped and survives a session stop
 
-### Spillerside
-- Board-tab: revealed kort + rød tråd
-- Visuelt tab: samme canvas som handler
-- Private noter: koblet til kort, kun forfatter + handler kan se
-- Karakterark: fuld Delta Green karakter med stats, skills, bonds
+### Player side
+- Board tab: revealed cards + red thread
+- Visual tab: same canvas as handler
+- Private notes: linked to cards, only author + handler can see
+- Character sheet: full Delta Green character with stats, skills, bonds
 
-### Handler-interface
-- Board-tab med spoiler-visning
-- Agenter-tab: læs alle spilleres karakterark
-- Spillernoter-tab: handler kan læse alle private noter
-- Aktivitetslog: hvem gjorde hvad og hvornår
-- Indstillinger: gruppenavn, beskrivelse, invite-link, auto-reveal toggle
+### Handler interface
+- Board tab with spoiler view
+- Agents tab: read all players' character sheets
+- Player notes tab: handler can read all private notes
+- Activity log: who did what and when
+- Settings: group name, description, invite link, auto-reveal toggle
 
 ### UI
-- Delta Green æstetik: monospace, skarpe kanter, grøn palette, mørk baggrund
-- Visuelt board: baggrundsbillede med dot-grid overlay, fixed til viewport
-- Login: Jersey 10 font, baggrundsbillede
+- Delta Green aesthetic: monospace, sharp edges, green palette, dark background
+- Visual board: background image with dot-grid overlay, fixed to viewport
+- Login: Jersey 10 font, background image
+- Language switcher: Danish / English, persisted to localStorage; all source code in English
 
 ---
 
-## Næste prioriteter
+## Next priorities
 
-1. **Reveal interrupt** — handler-reveal skal afbryde spilleren med fullscreen overlay (se REVEAL_PROBLEM.md)
-2. **Brugernavn** — spillere sætter eget display name (nu: email-præfiks)
-3. **Komm-kort label** — fjern "in-fiction" fra tidspunkt-felt
+1. **Reveal interrupt** — handler reveal should interrupt the player with a full-screen overlay (see REVEAL_PROBLEM.md)
 
 ---
 
-## Fremtid
+## Future
 
-- **Sprog** — kildekode refaktoreres til engelsk (variabelnavne, kommentarer); UI får language switcher dansk/engelsk
-- Presence: live musemarkører på visuelt canvas
-- Spiller-tokens på canvas
-- Rød tråd: mange-til-mange forbindelser, drag-and-drop direkte på canvas
-- Arkivér operation / start ny (større logik, der skal mappes)
-- Interaktiv terminal-korttype
-- Landingpage: in-character kodeord
-- Mobil-optimering (read-only board, ingen drag)
+- Presence: live mouse cursors on the visual canvas
+- Player tokens on the canvas
+- Red thread: many-to-many connections, drag-and-drop directly on the canvas
+- Archive operation / start new (larger logic to map out)
+- Interactive terminal card type
+- Landing page: in-character passphrase
+- Mobile optimisation (read-only board, no drag)
 - Demo version for showcasing in open source and subreddits

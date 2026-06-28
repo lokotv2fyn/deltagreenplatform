@@ -1,48 +1,48 @@
-# Reveal Interrupt — Problem & forsøg
+# Reveal Interrupt — Problem & Attempts
 
-## Hvad vi vil opnå
+## What we want to achieve
 
-Når handler revealer et kort (sætter `revealed = true`), skal spilleren afbrydes uanset hvilken tab de står i. Et overlay dækker hele skærmen — enten en dramatisk "nyt bevis"-modal eller en retro SMS-stil for `comms`-kort. Spilleren lukker det aktivt (ikke auto-dismiss).
-
----
-
-## Symptomer
-
-1. **Interrupt vises ikke** — spilleren ser ingenting når handler revealer.
-2. **Kortet dukker op på canvas** — efter vi fik realtime til at virke (migration 006), ser spilleren kortet dukke op på det visuelle board, men ingen interrupt.
-3. **Overlay ikke fullscreen** — når interrupt ENGANG viste sig (i tidlige tests), dækkede den ikke hele skærmen. Rettelse: Interrupts har aldrig været der.
+When the handler reveals a card (sets `revealed = true`), the player should be interrupted regardless of which tab they are on. An overlay covers the entire screen — either a dramatic "new evidence" modal or a retro SMS style for `comms` cards. The player closes it actively (no auto-dismiss).
 
 ---
 
-## Relevante filer
+## Symptoms
 
-| Fil | Rolle |
-|-----|-------|
-| `src/components/RevealInterrupt.vue` | Overlay-komponenten. SMS-variant + generisk variant. |
+1. **Interrupt is never shown** — the player sees nothing when the handler reveals.
+2. **Card appears on canvas** — after getting realtime to work (migration 006), the player sees the card appear on the visual board, but no interrupt.
+3. **Overlay not fullscreen** — when the interrupt did show (in early tests), it did not cover the full screen. Correction: the interrupt has never actually appeared.
+
+---
+
+## Relevant files
+
+| File | Role |
+|------|------|
+| `src/components/RevealInterrupt.vue` | Overlay component. SMS variant + generic variant. |
 | `src/stores/board.js` | Pinia store. `setRevealed()`, `subscribeRealtime()`, `lastRevealedId`. |
-| `src/views/play/PlayView.vue` | Spillerens view. Watcher på `board.lastRevealedId`, `revealQueue`, `interruptCard`. |
-| `supabase/migrations/006_realtime_publication.sql` | Tilføjer tabeller til Supabase Realtime-publikation (kritisk fix). |
-| `supabase/migrations/007_reveal_notifications.sql` | Ny notifikationstabel som event-bus for reveals (seneste forsøg, ikke testet). | Rettelse: Er testet og virkede heller ikke.
+| `src/views/play/PlayView.vue` | Player view. Watcher on `board.lastRevealedId`, `revealQueue`, `interruptCard`. |
+| `supabase/migrations/006_realtime_publication.sql` | Adds tables to the Supabase Realtime publication (critical fix). |
+| `supabase/migrations/007_reveal_notifications.sql` | New notification table as event-bus for reveals (latest attempt, tested and also failed). |
 
 ---
 
-## Root causes vi har identificeret
+## Root causes identified
 
-### 1. Tabeller ikke i Supabase Realtime-publikation (løst)
-Ingen `ALTER PUBLICATION supabase_realtime ADD TABLE ...` i migrationerne. Uden dette sender `postgres_changes` aldrig events overhovedet. **Fix:** Migration 006. Efter dette virker realtime-synkronisering (nye kort dukker op live).
+### 1. Tables not in Supabase Realtime publication (resolved)
+No `ALTER PUBLICATION supabase_realtime ADD TABLE ...` in the migrations. Without this, `postgres_changes` never sends any events at all. **Fix:** Migration 006. After this, realtime sync works (new cards appear live).
 
-### 2. RLS blokerer postgres_changes UPDATE-events for spillere
-Når handler ændrer `revealed` fra `false` → `true` på et kort spilleren ikke måtte se (fordi `revealed = false`), sender Supabase Realtime muligvis ikke UPDATE-eventet til spilleren. Spillerens SELECT-policy ser kort med `revealed = true OR created_by = auth.uid()` — men eventet for selve ændringen sendes baseret på ROW'ens *tidligere* state (som var usynlig). Dette er den sandsynlige root cause for at interrupt ikke trigges.
+### 2. RLS blocks postgres_changes UPDATE events for players
+When the handler changes `revealed` from `false` → `true` on a card the player was not allowed to see (because `revealed = false`), Supabase Realtime may not send the UPDATE event to the player. The player's SELECT policy sees cards with `revealed = true OR created_by = auth.uid()` — but the event for the change itself is sent based on the row's *previous* state (which was invisible). This is the likely root cause for the interrupt never being triggered.
 
-### 3. Broadcast upålideligt på blandede kanaler
-Supabase Realtime Broadcast leverer ikke konsistent til kanaler der også har `postgres_changes` konfigureret. Vi har ikke kunnet bekræfte at broadcasts overhovedet når frem til spilleren.
+### 3. Broadcast unreliable on mixed channels
+Supabase Realtime Broadcast does not deliver consistently to channels that also have `postgres_changes` configured. We have not been able to confirm that broadcasts reach the player at all.
 
 ---
 
-## Hvad vi har forsøgt (kronologisk)
+## Attempts (chronological)
 
-### Forsøg 1: Detektering via Realtime UPDATE-event i board store
-Lyttede på `event: 'UPDATE'` i `subscribeRealtime`. Tjekkede `payload.new.revealed === true` og om kortet ikke var synligt før. Problemet: spilleren modtager muligvis aldrig UPDATE-eventet pga. RLS (se root cause 2).
+### Attempt 1: Detection via Realtime UPDATE event in board store
+Listened to `event: 'UPDATE'` in `subscribeRealtime`. Checked `payload.new.revealed === true` and whether the card was not visible before. Problem: the player may never receive the UPDATE event due to RLS (see root cause 2).
 
 ```js
 // board.js
@@ -56,8 +56,8 @@ Lyttede på `event: 'UPDATE'` i `subscribeRealtime`. Tjekkede `payload.new.revea
   })
 ```
 
-### Forsøg 2: Watch på board.cards i PlayView
-Watchede `board.cards` reaktivt fra PlayView. Detekterede nye kort med `revealed: true` der ikke var i `seenRevealedIds`. Problem: `watch` triggede enten aldrig (Vue reaktivitets-timing) eller triggede for tidligt (før `watchActive` flag var sat).
+### Attempt 2: Watch on board.cards in PlayView
+Watched `board.cards` reactively from PlayView. Detected new cards with `revealed: true` that were not in `seenRevealedIds`. Problem: the `watch` either never triggered (Vue reactivity timing) or triggered too early (before the `watchActive` flag was set).
 
 ```js
 // PlayView.vue
@@ -72,8 +72,8 @@ watch(() => board.cards, (cards) => {
 })
 ```
 
-### Forsøg 3: Supabase Broadcast på dedikeret kanal (`reveals:groupId`)
-Handler sender broadcast, spilleren lytter. Problem: navnemismatch mellem hvad handler sendte på og hvad spilleren lyttede på. Derudover: channel var måske ikke i SUBSCRIBED state når `send()` kaldtes.
+### Attempt 3: Supabase Broadcast on a dedicated channel (`reveals:groupId`)
+Handler sends a broadcast; player listens. Problem: name mismatch between what the handler sent on and what the player listened on. Additionally: the channel may not have been in SUBSCRIBED state when `send()` was called.
 
 ```js
 // board.js setRevealed
@@ -85,11 +85,11 @@ supabase.channel(`reveals:${groupId}`)
   .subscribe()
 ```
 
-### Forsøg 4: Broadcast på `board:groupId` (to instanser, samme navn)
-Handler sender på main board-kanal, spillerens PlayView lytter på ny instans med samme navn. Problem: Supabase-js kan ikke håndtere to channel-instanser med identisk navn fra samme klient pålideligt — broadcasts ender muligvis i den forkerte instans.
+### Attempt 4: Broadcast on `board:groupId` (two instances, same name)
+Handler sends on the main board channel; the player's PlayView listens via a new instance with the same name. Problem: supabase-js cannot reliably handle two channel instances with identical names from the same client — broadcasts may end up in the wrong instance.
 
-### Forsøg 5: Broadcast listener i board store's kanal + `lastRevealedId` ref
-Flyt broadcast-lytteren ind i board store-kanalens `.on()`-kæde (samme objekt der sender). Eksponer `lastRevealedId` som reaktiv ref. PlayView watcher den. Problem: broadcast leveres stadig ikke konsistent — vi kan ikke bekræfte at spilleren faktisk modtager det.
+### Attempt 5: Broadcast listener in board store's channel + `lastRevealedId` ref
+Move the broadcast listener into the board store channel's `.on()` chain (the same object that sends). Expose `lastRevealedId` as a reactive ref. PlayView watches it. Problem: broadcast still does not deliver consistently — we cannot confirm that the player receives it.
 
 ```js
 // board.js subscribeRealtime
@@ -105,8 +105,8 @@ watch(() => board.lastRevealedId, (cardId) => {
 })
 ```
 
-### Forsøg 6: Database-notifikationstabel — TESTET, VIRKER IKKE
-Dropper broadcast helt. Handler inserter i `reveal_notifications`-tabel. Spilleren lytter på INSERT-events via `postgres_changes`. Migration 007 kørt. Interrupt vises stadig ikke.
+### Attempt 6: Database notification table — TESTED, DOES NOT WORK
+Drop broadcast entirely. Handler inserts into a `reveal_notifications` table. Player listens for INSERT events via `postgres_changes`. Migration 007 has been run. Interrupt still does not appear.
 
 ```js
 // board.js setRevealed
@@ -120,52 +120,52 @@ await supabase.from('reveal_notifications').insert({ group_id: _groupId, card_id
   })
 ```
 
-**Ukendt** om fejlen er: (A) insert fejler pga. RLS, (B) INSERT-event når ikke frem, (C) `lastRevealedId` sættes men Vue-watch trigges ikke, eller (D) modal renderer ikke korrekt.
+**Unknown** whether the failure is: (A) insert fails due to RLS, (B) INSERT event never arrives, (C) `lastRevealedId` is set but the Vue watch does not trigger, or (D) the modal does not render correctly.
 
 ---
 
-## CSS/Teleport-problem (overlay ikke fullscreen)
+## CSS / Teleport problem (overlay not fullscreen)
 
-`RevealInterrupt.vue` brugte scoped CSS (`.interrupt-backdrop { position: fixed; inset: 0 }`) kombineret med `<Teleport to="body">`. Scoped CSS + Teleport kan have edge cases med specificity. **Fix:** Inlinede styles direkte på backdrop-elementet:
+`RevealInterrupt.vue` used scoped CSS (`.interrupt-backdrop { position: fixed; inset: 0 }`) combined with `<Teleport to="body">`. Scoped CSS + Teleport can have edge cases with specificity. **Fix:** Inlined styles directly on the backdrop element:
 
 ```html
 <div style="position:fixed;top:0;right:0;bottom:0;left:0;z-index:9999;
             background:rgba(0,0,0,0.82);backdrop-filter:blur(6px);">
 ```
 
-Dette er implementeret og bør virke når interrupt faktisk trigges.
+This is implemented and should work once the interrupt is actually triggered.
 
 ---
 
-## Nuværende kode-state
+## Current code state
 
-- `RevealInterrupt.vue`: `<Teleport to="body">` + inline `position:fixed` styles. Klar til rendering.
-- `board.js`: Forsøg 6 (DB-notifikationer). `lastRevealedId = ref(null)` eksponeret fra store.
+- `RevealInterrupt.vue`: `<Teleport to="body">` + inline `position:fixed` styles. Ready to render.
+- `board.js`: Attempt 6 (DB notifications). `lastRevealedId = ref(null)` exposed from the store.
 - `PlayView.vue`: `watch(() => board.lastRevealedId, ...)` → `revealQueue` → `interruptCard` computed → `<RevealInterrupt v-if="interruptCard">`.
-- `supabase/migrations/007_reveal_notifications.sql`: Kørt.
+- `supabase/migrations/007_reveal_notifications.sql`: Run.
 
 ---
 
-## Næste skridt når vi vender tilbage
+## Next steps when we return
 
-Vi ved IKKE hvor kæden bryder. Det kræver console-debugging for at finde ud af det. Tilføj midlertidigt disse logs og se hvad browserkonsollen siger (F12):
+We do NOT know where the chain breaks. It requires console debugging to find out. Add these logs temporarily and check the browser console (F12):
 
-**1. Tjek om insert lykkes (HandlerView/board.js `setRevealed`):**
+**1. Check if the insert succeeds (HandlerView / board.js `setRevealed`):**
 ```js
 const { error } = await supabase.from('reveal_notifications').insert({ group_id: _groupId, card_id: cardId })
 console.log('reveal insert:', error ?? 'OK')
 ```
 
-**2. Tjek om event modtages (board.js `subscribeRealtime`):**
+**2. Check if the event is received (board.js `subscribeRealtime`):**
 ```js
 }, async (payload) => {
-  console.log('reveal_notifications INSERT modtaget:', payload.new)
+  console.log('reveal_notifications INSERT received:', payload.new)
   await loadBoard(groupId)
   lastRevealedId.value = payload.new.card_id
 })
 ```
 
-**3. Tjek om Vue-watch trigges (PlayView.vue):**
+**3. Check if the Vue watch fires (PlayView.vue):**
 ```js
 watch(() => board.lastRevealedId, (cardId) => {
   console.log('lastRevealedId watch:', cardId)
@@ -173,4 +173,4 @@ watch(() => board.lastRevealedId, (cardId) => {
 })
 ```
 
-Disse tre logs fortæller præcis om problemet er (A) RLS/insert, (B) Realtime-levering, (C) Vue-reaktivitet, eller (D) noget andet helt.
+These three logs pinpoint exactly whether the problem is (A) RLS/insert, (B) Realtime delivery, (C) Vue reactivity, or (D) something else entirely.

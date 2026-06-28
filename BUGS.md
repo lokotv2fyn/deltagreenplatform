@@ -1,20 +1,16 @@
-# Kendte bugs
+# Known bugs
 
-## Løst
-- Handler route ikke beskyttet mod spillere der gætter URL'en — løst via router guard
-- Dashboard viste gruppen dobbelt (en gang som handler, en gang som spiller) — løst med `.eq('user_id')` filter i groups store
-- Kort stablede sig alle i (0,0) på visuelt canvas — løst i `resolvedPos()`
+## Resolved
+- Handler route not protected against players guessing the URL — fixed via router guard
+- Dashboard showed the group twice (once as handler, once as player) — fixed with `.eq('user_id')` filter in groups store
+- Cards all stacked at (0,0) on the visual canvas — fixed in `resolvedPos()`
+- **Bug 6 — Display name:** Players shown with email prefix as display name instead of a chosen name — fixed: profile tab in PlayView lets players set their own display name
+- **Bug 7 — Comms card label:** Field was labelled "Tidspunkt (in-fiction)" — fixed: label is now just "Tidspunkt"
 
-## Åbne
-
-**6 — Brugernavn**
-Spillere vises med email-præfiks (det før @) som display name i stedet for eget valgt navn. Spillere skal have mulighed for at sætte et display name selv.
-
-**7 — Komm-kort label**
-Feltet hedder "Tidspunkt (in-fiction)" — "in-fiction" skal fjernes, feltet skal bare hedde "Tidspunkt".
+## Open
 
 **Reveal interrupt**
-Fuld-skærms interrupt til spillere ved handler-reveal virker ikke — kort dukker op på canvas men interrupt-overlay trigges ikke. Se `REVEAL_PROBLEM.md` for fuld diagnose og næste skridt.
+Full-screen interrupt for players on handler reveal does not work — the card appears on the canvas but the interrupt overlay is never triggered. See `REVEAL_PROBLEM.md` for full diagnosis and next steps.
 
-**Handler view: Kort på bordet/bunke** 
-Alle kort er på bordet, medmindre de ikke er revealed, så der er noget logik her, der fejler.
+**Handler view: cards on board / in deck**
+All cards show as on-board unless they are unrevealed — there is a logic bug in how `onBoard` / `inDeck` is determined.

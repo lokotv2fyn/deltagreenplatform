@@ -1,53 +1,54 @@
-# DG Platform — arkitektur (multi-gruppe, online, Supabase)
+# DG Platform — architecture (multi-group, online, Supabase)
 
-**Status: bygget og deployeret (v0.513).** Dette dokument er den autoritative kilde
-til skema, RLS-policies og app-struktur — opdatér det parallelt med kodeændringer.
+**Status: built and deployed (v0.513).** This document is the authoritative source
+for the schema, RLS policies, and app structure — update it in parallel with
+any code changes.
 
-Det gamle lokale værktøj (`display.html`/`control.html`/`engine/`) er slettet fra
-dette repo. Platformen er nu det eneste aktive projekt i mappen.
+The old local tool (`display.html` / `control.html` / `engine/`) has been deleted
+from this repo. The platform is now the only active project in the folder.
 
 ---
 
-## 1. Hvorfor denne stack
+## 1. Why this stack
 
-| Behov | Løsning |
+| Need | Solution |
 |---|---|
-| Flere grupper, flere sessions | Supabase Postgres, multi-tenant via `group_id` på alt |
-| Spillere logger ind | Supabase Auth (magic link — ingen password-administration) |
-| Realtid mellem enheder | Supabase Realtime (Postgres-changefeed over websocket) |
-| Adgangsstyring (private noter, Handler ser alt) | Postgres Row Level Security (RLS) |
-| Frontend | Vite + Vue 3 + Tailwind — `supabase-js` er framework-agnostisk, så Realtime/Auth/Storage virker identisk med Vue. Pinia til state (presence, board-state), vue-router til ruterne i afsnit 4. |
+| Multiple groups, multiple sessions | Supabase Postgres, multi-tenant via `group_id` on everything |
+| Players log in | Supabase Auth (magic link — no password management) |
+| Real-time between devices | Supabase Realtime (Postgres changefeed over websocket) |
+| Access control (private notes, handler sees everything) | Postgres Row Level Security (RLS) |
+| Frontend | Vite + Vue 3 + Tailwind — `supabase-js` is framework-agnostic, so Realtime/Auth/Storage work identically with Vue. Pinia for state (presence, board-state), vue-router for the routes in section 4. |
 
-Det er en reel udviklings-stack (git, npm, miljøvariabler, deploy). Det er derfor
-dette projekt hører hjemme i Claude Code/en rigtig editor — ikke i en fil-for-fil
-chat-session.
+This is a real development stack (git, npm, environment variables, deploy). That is
+why this project belongs in Claude Code / a real editor — not in a file-by-file
+chat session.
 
 ---
 
-## 2. Datamodel (Postgres / Supabase)
+## 2. Data model (Postgres / Supabase)
 
 ```sql
--- Brugerprofil, kobler sig til Supabase Auth's auth.users
+-- User profile, linked to Supabase Auth's auth.users
 create table profiles (
   id uuid primary key references auth.users(id),
   display_name text not null,
-  is_superadmin boolean default false,     -- kun dig (Louise) i praksis lige nu
-  can_create_groups boolean default false, -- styrer hvem der kan oprette en gruppe (= blive Handler for den)
+  is_superadmin boolean default false,     -- only you (Louise) in practice right now
+  can_create_groups boolean default false, -- controls who can create a group (= become its handler)
   created_at timestamptz default now()
 );
 
--- En kampagne-gruppe
+-- A campaign group
 create table groups (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  description text default '',      -- vises på spillerens "vælg gruppe"-forside
+  description text default '',      -- shown on the player's "choose group" landing page
   created_by uuid references profiles(id),
   invite_code text unique default substr(md5(random()::text), 1, 8),
   invite_expires_at timestamptz,
   created_at timestamptz default now()
 );
 
--- Medlemskab + rolle. role styrer ALT adgang.
+-- Membership + role. role controls ALL access.
 create table group_members (
   group_id uuid references groups(id) on delete cascade,
   user_id uuid references profiles(id) on delete cascade,
@@ -56,10 +57,10 @@ create table group_members (
   primary key (group_id, user_id)
 );
 
--- En spilleaften/sitting inden for en gruppe. VIGTIGT: dette er IKKE en
--- data-partition længere (se forklaring under "Session-livscyklus" nedenfor)
--- — det er en log-enhed + et pause/aktiv-flag. Selve boardet (kort, positioner,
--- kæde, noter) er gruppe-scoped og fortsætter uændret tværs af sessions.
+-- A game session / sitting within a group. IMPORTANT: this is NO LONGER a
+-- data partition (see "Session lifecycle" under section 4) — it is a log
+-- unit + a pause/active flag. The board itself (cards, positions, chain,
+-- notes) is group-scoped and continues unchanged across sessions.
 create table sessions (
   id uuid primary key default gen_random_uuid(),
   group_id uuid references groups(id) on delete cascade,
@@ -70,12 +71,12 @@ create table sessions (
   created_at timestamptz default now()
 );
 
--- Peger på gruppens "nuværende" sitting (active eller paused — null hvis
--- ingen er startet endnu, eller hvis den seneste blev sat til 'ended').
--- Bruges af RLS til at afgøre om spillere kan skrive til boardet lige nu.
+-- Points to the group's "current" sitting (active or paused — null if none
+-- has started yet, or if the most recent one was set to 'ended').
+-- Used by RLS to determine whether players can write to the board right now.
 alter table groups add column current_session_id uuid references sessions(id);
 
--- Hjælpefunktion: er gruppens nuværende sitting 'active' (ikke paused/ingen)?
+-- Helper function: is the group's current sitting 'active' (not paused / none)?
 create function session_active(g uuid) returns boolean as $$
   select exists (
     select 1 from groups gr join sessions s on s.id = gr.current_session_id
@@ -83,98 +84,99 @@ create function session_active(g uuid) returns boolean as $$
   );
 $$ language sql security definer;
 
--- Kort: både Handler-forfattede (briefing/npc/bevis/...) og spiller-oprettede clues.
--- Kortet selv (og dets indhold) lever i gruppen for evigt — det forsvinder ikke
--- når en session 'ended'. session_id er kun en historisk markør for "hvilken
--- sitting blev dette oprettet i", brugt i aktivitetsloggen, IKKE en synligheds-filter.
+-- Cards: both handler-authored (briefing/npc/evidence/...) and player-created clues.
+-- The card itself (and its content) lives in the group forever — it does not
+-- disappear when a session 'ended'. session_id is only a historical marker for
+-- "which sitting was this created in", used in the activity log, NOT a
+-- visibility filter.
 create table cards (
   id uuid primary key default gen_random_uuid(),
   group_id uuid references groups(id) on delete cascade,
-  session_id uuid references sessions(id) on delete set null,  -- historisk, ikke et synligheds-filter
+  session_id uuid references sessions(id) on delete set null,  -- historical, not a visibility filter
   type text not null,                 -- briefing | handout | npc | bevis | unnatural | terminal | comms | clue ...
   label text not null,
-  data jsonb not null default '{}',   -- samme form som i nuværende content.js
+  data jsonb not null default '{}',   -- same shape as in the current content.js
   origin text not null default 'handler' check (origin in ('handler','player')),
   created_by uuid references profiles(id),
-  revealed boolean default false,     -- false = spoiler, kun Handler ser den
-  pinned boolean default false,       -- true = ligger på case board
+  revealed boolean default false,     -- false = spoiler, handler-only
+  pinned boolean default false,       -- true = placed on the case board
   created_at timestamptz default now()
 );
 
--- Rød tråd / kæde-medlemskab. GRUPPE-scoped, ikke session-scoped — kæden
--- overlever en 'stop session' og er der stadig næste sitting. Delt og
--- kollaborativ: ALLE spillere kan tilføje/fjerne tråde mellem clues, ikke
--- kun Handler (men kun når sessionen er 'active', se RLS nedenfor).
+-- Red thread / chain membership. GROUP-scoped, not session-scoped — the chain
+-- survives a 'stop session' and is still there next sitting. Shared and
+-- collaborative: ALL players can add/remove threads between clues, not just
+-- the handler (but only when the session is 'active', see RLS below).
 create table chain_links (
   id uuid primary key default gen_random_uuid(),
   group_id uuid references groups(id) on delete cascade,
   card_id uuid references cards(id) on delete cascade,
-  position int not null,               -- kæde-nr
+  position int not null,               -- chain number
   added_by uuid references profiles(id),
   created_at timestamptz default now()
 );
 
--- Kæde-synlighed (gem/skjul), GRUPPE-scoped (samme begrundelse som ovenfor)
+-- Chain visibility (show/hide), GROUP-scoped (same rationale as above)
 create table chain_state (
   group_id uuid primary key references groups(id) on delete cascade,
   hidden boolean default false
 );
 
--- DELT board-layout pr. kort. GRUPPE-scoped via kortet (ikke et eget session_id) —
--- positionen et kort ligger på overlever en 'stop session'. Dette er IKKE
--- personligt pr. spiller — det er ét fælles, kollaborativt bord alle ser
--- opdatere sig i realtid (a la et multiplayer whiteboard). Adskilt fra
--- `cards`, fordi adgangen er anderledes: enhver gruppemedlem kan flytte/
--- minimere et kort, men kun forfatter/Handler kan redigere selve kortets
--- indhold (label/data).
+-- SHARED board layout per card. GROUP-scoped via the card (no own session_id) —
+-- the position a card is at survives a 'stop session'. This is NOT personal
+-- per player — it is one shared, collaborative board that everyone sees
+-- update in real time (like a multiplayer whiteboard). Separated from
+-- `cards` because access differs: any group member can move / minimise a
+-- card, but only the author / handler can edit the card's content (label/data).
 create table card_positions (
   card_id uuid primary key references cards(id) on delete cascade,
   x real default 0,
   y real default 0,
   z_index int default 0,
-  minimized boolean default true,   -- true = ligger i bunken i bunden, ikke placeret på boardet
+  minimized boolean default true,   -- true = in the deck at the bottom, not placed on the board
   updated_by uuid references profiles(id),
   updated_at timestamptz default now()
 );
 
--- Handler-indstillinger pr. gruppe, med mulighed for override pr. session
+-- Handler settings per group, with optional per-session override
 create table group_settings (
   group_id uuid primary key references groups(id) on delete cascade,
   auto_reveal_player_cards boolean default true,
-  settings jsonb default '{}'   -- fremtidige toggles uden ny migration
+  settings jsonb default '{}'   -- future toggles without a new migration
 );
-alter table sessions add column auto_reveal_override boolean; -- null = brug group_settings
+alter table sessions add column auto_reveal_override boolean; -- null = use group_settings
 
--- Forberedelses-assets: pdf'er, billeder, .md/tekst-filer Handleren uploader
--- til en gruppe (evt. scoped til en bestemt session), som kan vedhæftes kort.
--- Selve filen ligger i Supabase Storage, ikke i denne tabel — denne tabel er
--- metadata + reference til storage-path.
+-- Preparation assets: PDFs, images, .md/text files the handler uploads to a
+-- group (optionally scoped to a specific session), which can be attached to
+-- cards. The actual file lives in Supabase Storage, not in this table — this
+-- table is metadata + a reference to the storage path.
 create table group_assets (
   id uuid primary key default gen_random_uuid(),
   group_id uuid references groups(id) on delete cascade,
-  session_id uuid references sessions(id) on delete set null, -- null = tilhører gruppen generelt, ikke en bestemt session
+  session_id uuid references sessions(id) on delete set null, -- null = belongs to the group generally, not a specific session
   uploaded_by uuid references profiles(id),
-  storage_path text not null,      -- path i Storage-bucket, fx 'group_id/uuid-filnavn.pdf'
-  file_name text not null,         -- oprindeligt filnavn, til visning
+  storage_path text not null,      -- path in the Storage bucket, e.g. 'group_id/uuid-filename.pdf'
+  file_name text not null,         -- original file name, for display
   mime_type text not null,
   kind text not null check (kind in ('pdf', 'image', 'markdown', 'text')),
   created_at timestamptz default now()
 );
--- Max filstørrelse pr. upload: 20 MB, tjekket i UI'et før upload starter
--- (kun Handler uploader lige nu, så det er en pragmatisk grænse, ikke en
--- sikkerheds-foranstaltning — kan sættes op hvis det bliver et problem).
+-- Max file size per upload: 20 MB, checked in the UI before the upload starts
+-- (only the handler uploads for now, so this is a pragmatic limit, not a
+-- security measure — can be raised if it becomes an issue).
 
--- Kobler et asset til et kort (mange-til-mange: samme asset kan i princippet
--- bruges på flere kort, fx et kort over flere bevis-kort der peger på samme dokument)
+-- Links an asset to a card (many-to-many: the same asset can in principle
+-- be used on multiple cards, e.g. a map shared across several evidence cards
+-- that all point to the same document)
 create table card_assets (
   card_id uuid references cards(id) on delete cascade,
   asset_id uuid references group_assets(id) on delete cascade,
   primary key (card_id, asset_id)
 );
 
--- Aktivitetslog — Handler-only audit trail. Fyldes af triggers (se nedenfor),
--- ikke af applikationskoden, så den ikke kan springes over eller manipuleres
--- fra klienten.
+-- Activity log — handler-only audit trail. Filled by triggers (see below),
+-- not by application code, so it cannot be skipped or tampered with from
+-- the client.
 create table activity_log (
   id bigint generated always as identity primary key,
   group_id uuid references groups(id) on delete cascade,
@@ -185,17 +187,17 @@ create table activity_log (
                                    -- 'note_created' | 'note_updated'
   target_table text not null,
   target_id uuid,
-  details jsonb default '{}',     -- fx { from: {x,y}, to: {x,y} } for et flyt
+  details jsonb default '{}',     -- e.g. { from: {x,y}, to: {x,y} } for a move
   created_at timestamptz default now()
 );
 
--- Eksempel-trigger: logger enhver ændring i card_positions automatisk.
--- group_id/session_id slås op via kortet (card_positions har ikke selv disse
--- kolonner længere, jf. gruppe-scoping ovenfor); session_id i loggen er
--- gruppens NUVÆRENDE sitting på ændrings-tidspunktet (historisk markør, ikke
--- et synligheds-filter — se "Session-livscyklus" nedenfor).
--- Samme mønster kan genbruges på chain_links, cards (reveal), private_notes
--- (uden at logge selve note-teksten — kun at en note blev opdateret).
+-- Example trigger: logs every change to card_positions automatically.
+-- group_id/session_id are looked up via the card (card_positions no longer
+-- has these columns directly, per group-scoping above); session_id in the
+-- log is the group's CURRENT sitting at the time of the change (a historical
+-- marker, not a visibility filter — see "Session lifecycle" below).
+-- The same pattern can be reused on chain_links, cards (reveal), private_notes
+-- (without logging the note text itself — only that a note was updated).
 create function log_position_change() returns trigger as $$
 declare
   g uuid;
@@ -222,27 +224,28 @@ create trigger trg_log_position_change
   after update on card_positions
   for each row execute function log_position_change();
 
--- Private noter — kun forfatteren og Handler kan se dem. GRUPPE-scoped, ikke
--- session-scoped: en spillers noter er ÉN løbende notesbog pr. gruppe, ikke
--- en ny tom side hver sitting. De kan altid LÆSES (også når sessionen er
--- paused, jf. "kan tjekke noter mellem sessions"), men kan kun REDIGERES af
--- spillere når sessionen er 'active' (se RLS — det er selve "frys"-delen af
--- stop-session-kravet).
+-- Private notes — only the author and handler can see them. GROUP-scoped,
+-- not session-scoped: a player's notes are ONE running notebook per group,
+-- not a new blank page each sitting. They can always be READ (even when the
+-- session is paused — players can check notes between sessions), but can
+-- only be EDITED by players when the session is 'active' (see RLS — this
+-- is the "freeze" part of the stop-session requirement).
 create table private_notes (
   id uuid primary key default gen_random_uuid(),
   group_id uuid references groups(id) on delete cascade,
   author_id uuid references profiles(id) on delete cascade,
-  card_id uuid references cards(id) on delete set null,  -- valgfri: note koblet til et specifikt kort
+  card_id uuid references cards(id) on delete set null,  -- optional: note linked to a specific card
   body text not null default '',
   updated_at timestamptz default now()
 );
 
--- Event-bus til reveal-interrupt: handler inserter en række når et kort reveals,
--- spillere lytter på INSERT-events via postgres_changes. Adskilt fra selve
--- cards-UPDATE-eventet fordi RLS blokerer UPDATE-events for rækker spilleren
--- ikke måtte se i den tidligere tilstand (revealed=false → true).
+-- Event-bus for reveal interrupts: handler inserts a row when a card is
+-- revealed; players listen for INSERT events via postgres_changes. Separated
+-- from the cards UPDATE event itself because RLS blocks UPDATE events for
+-- rows the player could not previously see (revealed=false → true).
 -- Migration: 007_reveal_notifications.sql
--- Status: tabel og RLS oprettet, realtime-levering til spillere debugges (se REVEAL_PROBLEM.md)
+-- Status: table and RLS created; real-time delivery to players is being
+-- debugged (see REVEAL_PROBLEM.md)
 create table reveal_notifications (
   id uuid primary key default gen_random_uuid(),
   group_id uuid not null references groups(id) on delete cascade,
@@ -251,23 +254,23 @@ create table reveal_notifications (
 );
 ```
 
-**Tilstedeværelse og live-cursorer** (krav: spillere skal kunne se hinandens
-tilstedeværelse og musemarkør) gemmes **ikke** i Postgres. Det er for
-kortlivet/hyppigt til en database — brug i stedet Supabase Realtime
-**Presence** (et ephemeral broadcast-lag ovenpå websocket-forbindelsen):
-hver klient sender `{ user_id, display_name, color, cursor_x, cursor_y }`
-flere gange i sekundet på en `presence`-kanal scoped til `session_id`. Det
-er adskilt fra `postgres_changes`-kanalen som bruges til kort/kæde/noter.
+**Presence and live cursors** (requirement: players must be able to see each
+other's presence and mouse cursor) are **not** stored in Postgres. They are
+too short-lived / high-frequency for a database — use Supabase Realtime
+**Presence** instead (an ephemeral broadcast layer on top of the websocket
+connection): each client sends `{ user_id, display_name, color, cursor_x, cursor_y }`
+several times per second on a `presence` channel scoped to `session_id`. This
+is separate from the `postgres_changes` channel used for cards / chain / notes.
 
 ---
 
-## 3. Row Level Security — adgangsprincipper
+## 3. Row Level Security — access principles
 
-Generel regel: **alt er scoped til `group_id`**, og en bruger skal stå i
-`group_members` for den gruppe for at se noget som helst i den.
+General rule: **everything is scoped to `group_id`**, and a user must appear
+in `group_members` for that group to see anything in it.
 
 ```sql
--- Hjælpefunktion: er bruger handler i denne gruppe?
+-- Helper function: is the user a handler in this group?
 create function is_handler(g uuid) returns boolean as $$
   select exists (
     select 1 from group_members
@@ -275,8 +278,8 @@ create function is_handler(g uuid) returns boolean as $$
   );
 $$ language sql security definer;
 
--- cards: spillere ser kun revealed ELLER deres eget kort. Handler ser alt (inkl. spoilers).
--- Bemærk: revealed sættes nu automatisk ved insert for spiller-kort, jf. group_settings.
+-- cards: players only see revealed OR their own card. Handler sees everything (including spoilers).
+-- Note: revealed is now set automatically on insert for player cards, per group_settings.
 create policy "cards_select" on cards for select using (
   is_handler(group_id)
   or created_by = auth.uid()
@@ -285,8 +288,8 @@ create policy "cards_select" on cards for select using (
   ))
 );
 
--- Spillere kan kun oprette kort mens sessionen er 'active' (pauset = ingen
--- nye inputs). Handler er ikke begrænset af dette — kan forberede når som helst.
+-- Players can only create cards while the session is 'active' (paused = no
+-- new inputs). Handler is not limited by this — can prepare at any time.
 create policy "cards_insert_player" on cards for insert with check (
   origin = 'player' and created_by = auth.uid()
   and session_active(group_id)
@@ -297,9 +300,9 @@ create policy "cards_insert_handler" on cards for insert with check (
   is_handler(group_id)
 );
 
--- card_positions: DELT bord — alle gruppemedlemmer kan SE positioner altid
--- (også når pauset — boardet skal stadig kunne vises, bare ikke ændres).
--- Skrivning kræver enten Handler-rolle, eller at sessionen er 'active'.
+-- card_positions: SHARED board — all group members can SEE positions at all
+-- times (even when paused — the board still needs to display, just not be
+-- changed). Writing requires either the handler role, or an 'active' session.
 create policy "positions_select" on card_positions for select using (
   exists (
     select 1 from cards c join group_members gm on gm.group_id = c.group_id
@@ -314,9 +317,9 @@ create policy "positions_write" on card_positions for all using (
   )
 );
 
--- private_notes: KUN forfatter + Handler kan SE (kernekravet). Læsning er
--- ALTID tilladt, også når pauset (kan tjekke noter mellem sessions).
--- Redigering kræver at sessionen er 'active', med mindre man er Handler.
+-- private_notes: ONLY author + handler can SEE (core requirement). Reading
+-- is ALWAYS allowed, even when paused (players can check notes between sessions).
+-- Editing requires the session to be 'active', unless you are the handler.
 create policy "notes_select" on private_notes for select using (
   author_id = auth.uid() or is_handler(group_id)
 );
@@ -327,8 +330,8 @@ create policy "notes_update" on private_notes for update using (
   author_id = auth.uid() and (is_handler(group_id) or session_active(group_id))
 );
 
--- chain_links: alle gruppemedlemmer kan SE kæden altid. Tilføj/fjern kræver
--- Handler eller 'active' session — samme "frys ved pause"-princip som ovenfor.
+-- chain_links: all group members can SEE the chain at all times. Add/remove
+-- requires handler or an 'active' session — same "freeze on pause" principle.
 create policy "chain_select" on chain_links for select using (
   exists (select 1 from group_members where group_id = chain_links.group_id and user_id = auth.uid())
 );
@@ -337,35 +340,35 @@ create policy "chain_write" on chain_links for all using (
   and (is_handler(chain_links.group_id) or session_active(chain_links.group_id))
 );
 
--- group_settings: kun Handler kan læse/ændre
+-- group_settings: handler-only read/write
 create policy "settings_handler_only" on group_settings for all using (
   is_handler(group_id)
 );
 
--- groups: kun synlig for medlemmer (forsiden/dashboardet viser "mine grupper",
--- ikke en offentlig liste over alle grupper på platformen)
+-- groups: only visible to members (the dashboard shows "my groups", not a
+-- public list of all groups on the platform)
 create policy "groups_select_member" on groups for select using (
   exists (select 1 from group_members where group_id = groups.id and user_id = auth.uid())
 );
 
--- groups: kun brugere med can_create_groups = true kan oprette en gruppe
--- (= blive Handler for den). I praksis kun dig selv lige nu.
+-- groups: only users with can_create_groups = true can create a group
+-- (= become its handler). In practice only you right now.
 create policy "groups_insert_authorized" on groups for insert with check (
   created_by = auth.uid()
   and exists (select 1 from profiles where id = auth.uid() and can_create_groups = true)
 );
 
--- profiles: en superadmin (dig) kan give/fjerne can_create_groups for andre.
--- Almindelige brugere kan kun se/redigere deres eget display_name.
+-- profiles: a superadmin (you) can grant/revoke can_create_groups for others.
+-- Regular users can only view/edit their own display_name.
 create policy "profiles_select_own" on profiles for select using (id = auth.uid());
 create policy "profiles_update_own" on profiles for update using (id = auth.uid())
   with check (id = auth.uid() and can_create_groups = (select can_create_groups from profiles where id = auth.uid()));
-  -- ^ forhindrer en bruger i selv at skrive can_create_groups=true på sig selv
+  -- ^ prevents a user from writing can_create_groups=true onto themselves
 create policy "profiles_superadmin_manage" on profiles for all using (
   exists (select 1 from profiles p where p.id = auth.uid() and p.is_superadmin = true)
 );
 
--- group_assets: alle gruppemedlemmer kan se/downloade, kun Handler kan uploade/slette
+-- group_assets: all group members can view/download; only handler can upload/delete
 create policy "assets_select" on group_assets for select using (
   exists (select 1 from group_members where group_id = group_assets.group_id and user_id = auth.uid())
 );
@@ -373,148 +376,148 @@ create policy "assets_write_handler_only" on group_assets for all using (
   is_handler(group_id)
 );
 
--- card_assets: følger samme synlighed som det kort de er koblet til (revealed/egen/Handler)
+-- card_assets: follows the same visibility as the card it is linked to (revealed/own/handler)
 create policy "card_assets_select" on card_assets for select using (
-  exists (select 1 from cards c where c.id = card_assets.card_id) -- cards_select policy filtrerer allerede
+  exists (select 1 from cards c where c.id = card_assets.card_id) -- cards_select policy already filters
 );
 create policy "card_assets_write_handler_only" on card_assets for all using (
   exists (select 1 from cards c where c.id = card_assets.card_id and is_handler(c.group_id))
 );
 ```
 
-**Supabase Storage:** opret en bucket (fx `group-assets`), **privat** (ikke
-public), med storage-policies der spejler `group_assets`-reglerne ovenfor:
-upload kun hvis `is_handler(group_id)` (udledt af file-path-præfikset
-`group_id/...`), download/læs kun hvis brugeren er medlem af gruppen.
-Faktiske filer ligger i Storage; `group_assets.storage_path` er referencen.
-Hentning af en fil sker via en kortlivet signeret URL (`createSignedUrl`),
-ikke en permanent public URL — selv pdf'er/billeder skal gå gennem
-adgangskontrol, ikke ligge frit tilgængelige via et gættet link.
+**Supabase Storage:** create a bucket (e.g. `group-assets`), **private** (not
+public), with storage policies that mirror the `group_assets` rules above:
+upload only if `is_handler(group_id)` (derived from the file-path prefix
+`group_id/...`), download/read only if the user is a member of the group.
+Actual files live in Storage; `group_assets.storage_path` is the reference.
+Fetching a file happens via a short-lived signed URL (`createSignedUrl`),
+not a permanent public URL — even PDFs/images must go through access control,
+not be freely accessible via a guessed link.
 
 ---
 
-## 4. App-struktur (forslag, Vite + Vue 3 + Tailwind + supabase-js)
+## 4. App structure (Vite + Vue 3 + Tailwind + supabase-js)
 
 ```
 /app
-├── /login                       ← Supabase magic-link auth (eneste indgang for alle roller)
-├── /dashboard                   ← FORSIDE efter login: liste over MINE grupper/sessions
-│   │                              (navn + Handlerens beskrivelse), klik → /handler/[groupId]
-│   │                              eller /play/[groupId] afhængig af rolle i den gruppe
-│   └── /new                     ← "opret gruppe", kun synlig/tilgængelig hvis can_create_groups = true
-├── /handler/[groupId]          ← hemmeligt Handler-interface
-│   ├── board (samme delte board, men ser revealed=false kort også, markeret som spoiler)
-│   ├── settings (auto_reveal_player_cards og fremtidige toggles, pr. gruppe/session,
-│   │             invite-link regenerering, gruppe-beskrivelse)
-│   ├── assets (upload pdf/billede/.md/tekst, attach til kort, se afsnit "Forberedelses-assets")
-│   ├── activity (aktivitetslog — se afsnit 7.1)
-│   └── notes (kan læse ALLE spilleres private noter)
-├── /play/[groupId]             ← spillerens visning — SAMME delte board som alle andre ser
-│   ├── board (kollaborativt board: alle reveals, live cursorer, drag/minimize/rød tråd)
-│   └── notes (kun egne private noter, CRUD)
-└── /join/[inviteCode]          ← landing page for invite-link → login → group_members insert
+├── /login                       ← Supabase magic-link auth (only entry point for all roles)
+├── /dashboard                   ← Landing page after login: list of MY groups/sessions
+│   │                              (name + handler's description), click → /handler/[groupId]
+│   │                              or /play/[groupId] depending on role in that group
+│   └── /new                     ← "create group", only visible/accessible if can_create_groups = true
+├── /handler/[groupId]          ← secret handler interface
+│   ├── board (same shared board, but also sees revealed=false cards, marked as spoiler)
+│   ├── settings (auto_reveal_player_cards and future toggles, per group/session;
+│   │             invite link regeneration, group description)
+│   ├── assets (upload PDF/image/.md/text, attach to cards, see "Preparation assets")
+│   ├── activity (activity log — see section 7.1)
+│   └── notes (can read ALL players' private notes)
+├── /play/[groupId]             ← player view — SAME shared board as everyone else sees
+│   ├── board (collaborative board: all reveals, live cursors, drag/minimize/red thread)
+│   └── notes (own private notes only, CRUD)
+└── /join/[inviteCode]          ← landing page for invite link → login → group_members insert
 ```
 
-**Rolle-modellen er superadmin → Handler → spiller, ikke flad.** `is_superadmin`
-(kun dig i praksis) kan give andre brugere `can_create_groups = true`, hvorefter
-de kan oprette egne grupper og automatisk blive Handler for netop dem (stadig
-bare almindelig spiller i grupper andre opretter). Lige nu er der ingen UI til
-at administrere dette — det sættes manuelt i databasen, fordi kun du bruger
-det. En `/admin`-side til at toggle'e `can_create_groups` for andre brugere er
-en oplagt fremtidig udvidelse, men ikke nødvendig i v1.
+**The role model is superadmin → handler → player, not flat.** `is_superadmin`
+(only you in practice) can give other users `can_create_groups = true`, after
+which they can create their own groups and automatically become handler for
+exactly those groups (still just a regular player in groups others create).
+There is currently no UI for this — it is set manually in the database, because
+only you use it. An `/admin` page to toggle `can_create_groups` for other users
+is an obvious future extension, but not needed in v1.
 
-**Forberedelses-assets** (pdf, billede, .md/tekst-fil) uploades af Handleren
-til en gruppe (evt. scoped til en bestemt session) via `/handler/[groupId]/
-assets`. Når Handleren opretter eller redigerer et kort, kan et eller flere
-allerede-uploadede assets vælges og knyttes til kortet (`card_assets`).
-Spillere ser/downloader vedhæftede assets på kort de har adgang til (samme
-synlighedsregel som kortet selv), men uploader ikke selv — kun spiller-
-oprettede *kort* (clue-kort, jf. `cards.origin = 'player'`) er noget
-spillerne selv skaber; filupload er et Handler-only forberedelsesværktøj.
+**Preparation assets** (PDF, image, .md/text file) are uploaded by the handler
+to a group (optionally scoped to a specific session) via `/handler/[groupId]/
+assets`. When the handler creates or edits a card, one or more already-uploaded
+assets can be selected and linked to the card (`card_assets`). Players
+view/download attached assets on cards they have access to (same visibility
+rule as the card itself), but do not upload themselves — only player-created
+*cards* (clue cards, i.e. `cards.origin = 'player'`) are something players
+create; file upload is a handler-only preparation tool.
 
-### Login/invite-flow, udfoldet
+### Login / invite flow, expanded
 
-1. **Handler opretter gruppe** (fra `/handler` efter eget login) → indsætter
-   række i `groups`, `invite_code` genereres automatisk af kolonnens default.
-2. **Handler deler invite-linket** (`/join/<invite_code>`) med sine spillere
-   uden om platformen — SMS, Discord, hvad de nu bruger.
-3. **Spiller åbner `/join/<invite_code>`.** Siden slår koden op i `groups`
-   (uden at kræve login først — det er et offentligt, men hemmeligt-ved-
-   ukendelighed link). Findes koden ikke eller er den udløbet → fejlside med
-   besked om at bede Handler om et nyt link.
-4. **Spiller logger ind via Supabase magic-link** (`/login`, men med
-   `invite_code` gemt i URL/state, så flowet kan fortsætte efter login).
-   Supabase-js håndterer selv session/token i browseren — ingen egen
-   kode til det.
-5. **Efter bekræftet login:** indsæt række i `group_members` med
-   `role = 'player'` og `group_id` fra koden, **hvis** brugeren ikke allerede
-   er medlem (idempotent — ellers fejler en person der klikker linket igen).
-6. **Redirect til `/play/[groupId]`.**
+1. **Handler creates a group** (from `/handler` after their own login) → inserts
+   a row into `groups`; `invite_code` is generated automatically by the column default.
+2. **Handler shares the invite link** (`/join/<invite_code>`) with their players
+   out-of-band — SMS, Discord, whatever they use.
+3. **Player opens `/join/<invite_code>`.** The page looks up the code in `groups`
+   (without requiring login first — it is a public-but-secret-by-obscurity link).
+   If the code does not exist or has expired → error page with a message to ask
+   the handler for a new link.
+4. **Player logs in via Supabase magic-link** (`/login`, but with `invite_code`
+   saved in URL/state so the flow can continue after login). supabase-js handles
+   the session/token in the browser — no custom code needed for that.
+5. **After confirmed login:** insert a row into `group_members` with
+   `role = 'player'` and `group_id` from the code, **if** the user is not
+   already a member (idempotent — otherwise a person clicking the link again
+   would fail).
+6. **Redirect to `/play/[groupId]`.**
 
-**Udløb/regenerering af `invite_code`** (din pointe i 7.3 — koden bør ikke
-leve for evigt af sikkerhedsmæssige grunde):
+**Invite code expiry / regeneration** (your point in 7.3 — the code should not
+live forever for security reasons):
 
-`invite_expires_at` står allerede i `groups`-tabellen i afsnit 2.
+`invite_expires_at` is already in the `groups` table in section 2.
 
-- Sættes typisk til fx 7 dage fra oprettelse, eller Handler kan sætte den
-  manuelt (engangsbrug for én bestemt spiller, fx).
-- `/join/[inviteCode]` tjekker `invite_expires_at > now()` i samme query som
-  kode-opslaget — udløbet kode behandles som "findes ikke".
-- Handler-UI bør have en **"Generér nyt invite-link"**-knap: opdaterer
-  `invite_code` (nyt random-tegn) + `invite_expires_at` (ny dato). Dette
-  ugyldiggør automatisk det gamle link, hvilket er den eneste "revoke"-
-  mekanisme der er nødvendig — der er ikke et separat invite-status-felt.
-- Allerede-medlemmer (`group_members`) påvirkes ikke af at koden udløber —
-  udløb forhindrer kun *nye* tilmeldinger, det smider ikke eksisterende
-  spillere ud.
+- Typically set to e.g. 7 days from creation, or the handler can set it
+  manually (single-use for one specific player, for example).
+- `/join/[inviteCode]` checks `invite_expires_at > now()` in the same query
+  as the code lookup — an expired code is treated as "does not exist".
+- The handler UI should have a **"Generate new invite link"** button: updates
+  `invite_code` (new random string) + `invite_expires_at` (new date). This
+  automatically invalidates the old link, which is the only "revoke" mechanism
+  needed — there is no separate invite-status field.
+- Existing members (`group_members`) are not affected by the code expiring —
+  expiry only prevents *new* sign-ups; it does not remove existing players.
 
-### Session-livscyklus: "stop session" / "start ny session"
+### Session lifecycle: "stop session" / "start new session"
 
-Dette er kernen i 8.2: Handler skal kunne stoppe en spilleaften midlertidigt
-og fortsætte præcis hvor man slap, næste gang.
+This is the core of 8.2: the handler must be able to stop an evening's play
+temporarily and continue exactly where they left off next time.
 
-**Hvorfor boardet blev gjort gruppe-scoped i stedet for session-scoped**
-(se ændringerne i afsnit 2): hvis `card_positions`/`chain_links`/
-`private_notes` havde været knyttet til den enkelte session, ville en ny
-session pr. definition starte med et tomt board — det er det modsatte af
-"fortsætter hvor man slap". Løsningen er at lade selve boardet (kort,
-positioner, kæde, noter) leve på gruppe-niveau permanent, og lade `sessions`
-være en ren tidsmarkør/log-enhed med et status-flag, ikke en data-partition.
+**Why the board was made group-scoped instead of session-scoped**
+(see the changes in section 2): if `card_positions` / `chain_links` /
+`private_notes` had been tied to the individual session, a new session would
+by definition start with an empty board — the opposite of "continue where you
+left off". The solution is to let the board itself (cards, positions, chain,
+notes) live at the group level permanently, and let `sessions` be a pure
+timestamp / log unit with a status flag, not a data partition.
 
 **Flow:**
 
-1. **Stop session:** Handler trykker "Stop session" i menuen. Klienten
-   sætter `sessions.status = 'paused'` på gruppens `current_session_id`.
-   Intet andet skrives/ryddes — kort, positioner, kæde og noter ligger
-   præcis hvor de var.
-2. **Realtime-broadcast af pause:** Da `sessions` opdateres, fanger alle
-   spilleres `postgres_changes`-subscription ændringen øjeblikkeligt.
-   Spillerens UI reagerer ved at vise en "Session er pauset af Handler"-skærm
-   over boardet (board vises stadig **read-only** bagved — ikke en blank
-   side) og deaktiverer drag/opret/kæde-knapper. RLS blokerer skrivningerne
-   alligevel (se nedenfor), så UI-låsen er for god UX, ikke selve
-   sikkerheden.
-3. **Mens pauset:** spillere kan stadig læse boardet og deres egne private
-   noter (`notes_select` har ingen pause-betingelse), men kan ikke skrive
-   til `cards`/`card_positions`/`chain_links`/`private_notes` — det er
-   "frys"-delen af kravet, håndteret af `session_active()`-tjekket i RLS-
-   policies i afsnit 3. Handler er undtaget fra denne begrænsning og kan
-   stadig forberede/redigere.
-4. **Ingen forced logout** (afklaret ovenfor) — spilleren behøver ikke logge
-   ud, pause-skærmen + RLS er nok. De kan vælge selv at logge ud hvis de vil.
-5. **Start ny session:** Handler trykker "Start ny session" (fra samme
-   gruppe-menu). Det opretter en ny række i `sessions` med `status='active'`,
-   sætter den forrige sessions `status='ended'`, og peger gruppens
-   `current_session_id` på den nye. Boardet er allerede der — der er intet
-   at genskabe.
+1. **Stop session:** Handler clicks "Stop session" in the menu. The client
+   sets `sessions.status = 'paused'` on the group's `current_session_id`.
+   Nothing else is written or cleared — cards, positions, chain, and notes
+   stay exactly where they were.
+2. **Realtime broadcast of pause:** When `sessions` is updated, all players'
+   `postgres_changes` subscription picks up the change immediately. The
+   player's UI reacts by showing a "Session paused by handler" screen over
+   the board (the board is still visible **read-only** in the background —
+   not a blank page) and disables drag/create/chain buttons. RLS blocks the
+   writes anyway (see below), so the UI lock is for good UX, not the actual
+   security.
+3. **While paused:** players can still read the board and their own private
+   notes (`notes_select` has no pause condition), but cannot write to
+   `cards` / `card_positions` / `chain_links` / `private_notes` — this is
+   the "freeze" part of the requirement, handled by the `session_active()`
+   check in the RLS policies in section 3. The handler is exempt from this
+   restriction and can still prepare/edit.
+4. **No forced logout** (settled above) — players do not need to log out;
+   the pause screen + RLS is enough. They can choose to log out themselves
+   if they want.
+5. **Start new session:** Handler clicks "Start new session" (from the same
+   group menu). This creates a new row in `sessions` with `status='active'`,
+   sets the previous session's `status='ended'`, and points the group's
+   `current_session_id` to the new one. The board is already there — nothing
+   to rebuild.
 
 ```sql
--- Eksempel på de to handlinger som RPC-funktioner (kaldes fra klienten via
--- supabase.rpc(), køres med brugerens egne rettigheder — kun Handler kan
--- faktisk gennemføre dem pga. RLS-checket inden i funktionen)
+-- Example: the two actions as RPC functions (called from the client via
+-- supabase.rpc(), run with the user's own permissions — only the handler
+-- can actually complete them due to the RLS check inside the function)
 create function stop_session(target_group uuid) returns void as $$
 begin
-  if not is_handler(target_group) then raise exception 'kun Handler'; end if;
+  if not is_handler(target_group) then raise exception 'handler only'; end if;
   update sessions set status = 'paused'
   where id = (select current_session_id from groups where id = target_group);
 end;
@@ -524,7 +527,7 @@ create function start_new_session(target_group uuid, new_label text) returns uui
 declare
   new_id uuid;
 begin
-  if not is_handler(target_group) then raise exception 'kun Handler'; end if;
+  if not is_handler(target_group) then raise exception 'handler only'; end if;
   update sessions set status = 'ended', ended_at = now()
   where id = (select current_session_id from groups where id = target_group);
   insert into sessions (group_id, label, status) values (target_group, new_label, 'active')
@@ -535,113 +538,113 @@ end;
 $$ language plpgsql security invoker;
 ```
 
-**Boardet er ét delt, kollaborativt rum** — ikke et personligt dashboard pr.
-spiller. Alle der er i sessionen ser samme kort, samme positioner, samme røde
-tråd, og hinandens musemarkører i realtid (som et multiplayer whiteboard).
-Det eneste personlige/private lag er noterne.
+**The board is one shared, collaborative room** — not a personal dashboard per
+player. Everyone in the session sees the same cards, the same positions, the
+same red thread, and each other's mouse cursors in real time (like a
+multiplayer whiteboard). The only personal / private layer is the notes.
 
-Spillerne kan på dette delte board:
-- minimere et kort, så det lægger sig i en bunke i bunden (`card_positions.minimized = true`)
-- selv vælge at trække det op igen / placere det fritliggende (`minimized = false`, sætte `x`/`y`)
-- flytte rundt på frit placerede kort (opdaterer `x`/`y` live for alle)
-- tilføje/fjerne et kort fra den røde tråd, og vælge kæde-nummer
+Players can on this shared board:
+- minimise a card, so it goes into a deck at the bottom (`card_positions.minimized = true`)
+- choose to pull it back up / place it freely (`minimized = false`, set `x`/`y`)
+- move freely-placed cards around (updates `x`/`y` live for everyone)
+- add/remove a card from the red thread, and choose its chain number
 
-Realtime: to lag.
-1. `postgres_changes` på `cards`, `card_positions`, `chain_links`, `chain_state`
-   — det persistente, delte board-indhold.
-2. Realtime **Presence** (ikke i databasen) for cursorer og "hvem er online"
-   — se afsnit 2 ovenfor.
+Realtime: two layers.
+1. `postgres_changes` on `cards`, `card_positions`, `chain_links`, `chain_state`
+   — the persistent, shared board content.
+2. Realtime **Presence** (not in the database) for cursors and "who is online"
+   — see section 2 above.
 
-Dette erstatter `BroadcastChannel` 1:1 i koncept — samme event-model, bare over
-internettet, med flere samtidige redaktører, og adgangskontrol indbygget i
-databasen i stedet for "alle på maskinen ser alt".
+This replaces `BroadcastChannel` 1:1 in concept — same event model, just over
+the internet, with multiple simultaneous editors, and access control built into
+the database instead of "everyone on the machine sees everything".
 
-UI-renderingslaget (korttype-skins, kæde-animation) fra det nuværende
-`display.html`/`control.html` kan i høj grad **genbruges som logik**, bare
-flyttet fra vanilla-JS-DOM-manipulation til Vue-komponenter (én komponent pr.
-korttype, samme opdeling som de nuværende `engine/renderers/*.js`-filer i
-`platform/`), og med drag-state nu drevet af `card_positions` i stedet for
-lokal `pinned`-liste. `hashInt`/`hashRange`-mønstret for deterministisk visuel
-variation (rotation, stak-offset) kan kopieres direkte ind som almindelige
-JS-hjælpefunktioner — det er ikke React/Vue-specifikt.
+The UI rendering layer (card-type skins, chain animation) from the current
+`display.html` / `control.html` can largely be **reused as logic**, just moved
+from vanilla-JS DOM manipulation to Vue components (one component per card type,
+same split as the current `engine/renderers/*.js` files in `platform/`), and
+with drag-state now driven by `card_positions` instead of a local `pinned` list.
+The `hashInt` / `hashRange` pattern for deterministic visual variation
+(rotation, stack offset) can be copied directly as ordinary JS helper functions
+— it is not React/Vue-specific.
 
 ---
 
-## 5. Migreringsstatus
+## 5. Migration status
 
-| Trin | Status |
+| Step | Status |
 |------|--------|
-| 1. Supabase-projekt + skema + RLS | ✅ Migrations 001–007 kørt |
-| 2. Auth + invite-flow + dashboard | ✅ Bygget |
-| 3. Delt board-visning, realtime | ✅ Migration 006 fikser realtime publication |
-| 4. Handler-interface: opret/reveal/indstillinger | ✅ Bygget |
-| 5. Spiller-side: kort + noter | ✅ Bygget |
-| 6. Drag/minimize, live-sync | ✅ Bygget |
-| 7. Rød tråd, realtime-sync | ✅ Bygget |
-| 8. Presence / live cursorer | ⬜ Ikke bygget endnu |
-| 9. Session-livscyklus | ✅ Bygget |
-| 10. Reveal interrupt til spillere | 🔴 Bygget men virker ikke — se REVEAL_PROBLEM.md |
-| 11. Delta Green UI-æstetik | ✅ Bygget (v0.513) |
+| 1. Supabase project + schema + RLS | ✅ Migrations 001–007 run |
+| 2. Auth + invite flow + dashboard | ✅ Built |
+| 3. Shared board view, realtime | ✅ Migration 006 fixes realtime publication |
+| 4. Handler interface: create/reveal/settings | ✅ Built |
+| 5. Player side: cards + notes | ✅ Built |
+| 6. Drag/minimize, live sync | ✅ Built |
+| 7. Red thread, realtime sync | ✅ Built |
+| 8. Presence / live cursors | ⬜ Not built yet |
+| 9. Session lifecycle | ✅ Built |
+| 10. Reveal interrupt for players | 🔴 Built but not working — see REVEAL_PROBLEM.md |
+| 11. Delta Green UI aesthetic | ✅ Built (v0.513) |
 
-## 6. Beslutninger (afklaret)
+## 6. Settled decisions
 
-- **Tilstedeværelse/cursorer:** Ja — spillere ser hinandens online-status og
-  musemarkør live på det delte board (Presence, se afsnit 2).
-- **Auto-reveal af spiller-kort:** Ja, som default (`group_settings.auto_reveal_player_cards = true`).
-  Skal kunne styres af Handler — både pr. gruppe (default) og overrides pr.
-  session (`sessions.auto_reveal_override`), så det kan justeres løbende uden
-  kodeændring.
-- **Skala:** Kun én samtidig gruppe i praksis lige nu. Skemaet er stadig
-  multi-tenant (kostede ikke noget ekstra at designe det rigtigt), men der er
-  ingen grund til at bekymre sig om Supabase free-tier-grænser eller
-  skalering før det rent faktisk bliver relevant.
-- **Forhold til nuværende værktøj:** Nyt, separat projekt. `dashboard/`
-  (dette nuværende lokale værktøj) rører vi ikke — det fortsætter som det er.
-  Mappen er kopieret til `platform/` som reference/inspiration til Claude Code
-  (inkl. den ufærdige `engine/`/`control/`-opsplitning og `terminals.js` fra
-  17. juni, som er bevaret uændret efter eksplicit ønske — de er ikke en del
-  af den nye Supabase-arkitektur, men kan plukkes idéer/kode fra).
-- **Forside-flow:** Login først (magic-link), derefter `/dashboard` med en
-  liste over de grupper/sessions brugeren allerede er medlem af (navn +
-  Handlerens beskrivelse). Gruppelisten er aldrig offentlig/synlig for
-  ikke-loggede-ind brugere — kun nye spillere via et invite-link kommer ind
-  uden allerede at være medlem.
-- **Handler-rolle:** Du er superadmin. Lige nu er du den eneste der kan
-  oprette grupper (`can_create_groups`), men modellen er bygget til at du
-  senere kan give andre brugere samme ret, hvis de vil køre deres egen
-  Delta Green-gruppe på platformen. Ingen UI til dette i v1 — sættes manuelt
-  i databasen indtil det bliver relevant.
-- **Asset-upload:** Kun Handler uploader forberedelsesmateriale (pdf,
-  billede, .md/tekst) til en gruppe, og vedhæfter det til kort. Spillere
-  opretter selv *kort* (clues), men uploader ikke filer — det er bevidst en
-  Handler-only forberedelsesfunktion, ikke en delt fil-deling. Max 20 MB pr.
-  filupload (pragmatisk grænse, ikke sikkerhed — kun du uploader i praksis).
-- **Frontend-stack:** Vue 3 + Vite + Tailwind (ikke React) — `supabase-js`
-  er framework-agnostisk, og du er selv erfaren i Vue, hvilket vejer tungere
-  end nogen teknisk forskel mellem de to.
-- **Session-pause/resume:** Se det nye afsnit "Session-livscyklus" under
-  afsnit 4 — boardet er gjort gruppe-scoped (ikke session-scoped) netop for
-  at understøtte "fortsæt hvor du slap". Pause er en blød UI-skærm + RLS-
-  blokering, intet reelt forced logout.
-- **Terminal-feature (ROADMAP punkt 1):** Udskudt — ikke en del af v1 af
-  platformen. Tages op igen som en selvstændig udvidelse senere.
-- **Deploy:** Netlify. Husk `.gitignore` for `.env`, og en regel i
-  `platform/CLAUDE.md`/Claude Code-instruktioner om aldrig at læse eller
-  committe `.env`-filer.
-- **Test:** Du har en anden person klar til at hjælpe med RLS-/flow-test med
-  rigtige flere brugere, ikke kun dig selv som Handler.
+- **Presence/cursors:** Yes — players see each other's online status and
+  mouse cursor live on the shared board (Presence, see section 2).
+- **Auto-reveal of player cards:** Yes, as the default (`group_settings.auto_reveal_player_cards = true`).
+  Must be controllable by the handler — both per group (default) and overrideable
+  per session (`sessions.auto_reveal_override`), so it can be adjusted on the
+  fly without a code change.
+- **Scale:** Only one simultaneous group in practice right now. The schema is
+  still multi-tenant (cost nothing extra to design correctly), but there is no
+  reason to worry about Supabase free-tier limits or scaling until it actually
+  becomes relevant.
+- **Relationship to the old tool:** New, separate project. `dashboard/` (the
+  current local tool) is left untouched — it continues as-is. The folder was
+  copied into `platform/` as a reference/inspiration for Claude Code (including
+  the unfinished `engine/` / `control/` split and `terminals.js` from June 17th,
+  preserved unchanged at explicit request — they are not part of the new
+  Supabase architecture, but ideas/code can be borrowed from them).
+- **Dashboard flow:** Login first (magic-link), then `/dashboard` with a list
+  of the groups/sessions the user is already a member of (name + handler's
+  description). The group list is never public/visible to unauthenticated users
+  — only new players coming via an invite link enter without already being a member.
+- **Handler role:** You are superadmin. Right now only you can create groups
+  (`can_create_groups`), but the model is built so you can later give other
+  users the same right if they want to run their own Delta Green group on the
+  platform. No UI for this in v1 — set manually in the database until it
+  becomes relevant.
+- **Asset upload:** Only the handler uploads preparation material (PDF, image,
+  .md/text) to a group and attaches it to cards. Players create their own
+  *cards* (clues), but do not upload files — this is deliberately a
+  handler-only preparation function, not shared file storage. Max 20 MB per
+  upload (pragmatic limit, not security — only you upload in practice).
+- **Frontend stack:** Vue 3 + Vite + Tailwind (not React) — `supabase-js` is
+  framework-agnostic, and you are experienced with Vue, which outweighs any
+  technical difference between the two.
+- **Session pause/resume:** See the new "Session lifecycle" section under
+  section 4 — the board was made group-scoped (not session-scoped) precisely
+  to support "continue where you left off". Pause is a soft UI screen + RLS
+  blocking, not a real forced logout.
+- **Terminal feature (ROADMAP item 1):** Deferred — not part of v1 of the
+  platform. Will be revisited as a standalone extension later.
+- **Deploy:** Netlify. Remember `.gitignore` for `.env`, and a rule in
+  `platform/CLAUDE.md` / Claude Code instructions to never read or commit
+  `.env` files.
+- **Testing:** You have another person ready to help with RLS / flow testing
+  with real multiple users, not just yourself as handler.
 
-## 7. Afklaret: aktivitetslog, "sidste skriv vinder", og invite-flow
+## 7. Settled: activity log, "last write wins", and invite flow
 
-**7.1 — Handler ser alt, inkl. historik.** Bekræftet krav: Handler skal ikke
-kun kunne se *nuværende* tilstand (det dækkede de gamle policies allerede via
-fælles SELECT på `card_positions`/`chain_links`), men en **historisk log**
-over hvem der gjorde hvad. Løst med den nye `activity_log`-tabel (afsnit 2):
-fyldt af Postgres-triggers (ikke klient-kald, så den ikke kan springes over),
-låst til Handler-only via RLS-policy nedenfor, og tænkt vist som en
-sammenklappelig "Aktivitetslog"-sektion i Handler-menuen — en simpel liste
-("Andreas flyttede *Politirapport* 14:32", "Anne tilføjede rød tråd mellem
-*Vidneudsagn* og *Telefonlog* 14:35"), ikke en separat side.
+**7.1 — Handler sees everything, including history.** Confirmed requirement:
+the handler must not only be able to see the *current* state (already covered
+by the old policies via shared SELECT on `card_positions` / `chain_links`),
+but a **historical log** of who did what. Solved with the new `activity_log`
+table (section 2): filled by Postgres triggers (not client calls, so it
+cannot be skipped), locked to handler-only via the RLS policy below, and
+intended to be displayed as a collapsible "Activity log" section in the
+handler menu — a simple list ("Andreas moved *Police Report* 14:32", "Anne
+added red thread between *Witness Statement* and *Call Log* 14:35"), not a
+separate page.
 
 ```sql
 create policy "activity_handler_only" on activity_log for select using (
@@ -649,106 +652,105 @@ create policy "activity_handler_only" on activity_log for select using (
 );
 ```
 
-Trigger-mønstret fra afsnit 2 (`log_position_change`) bør gentages for
-`chain_links` (insert/delete) og `private_notes` (kun at en note blev
-opdateret — **ikke** selve teksten, det ville underminere hele pointen med
-private noter) og evt. `cards` (reveal-events).
+The trigger pattern from section 2 (`log_position_change`) should be repeated
+for `chain_links` (insert/delete) and `private_notes` (only that a note was
+updated — **not** the text itself, which would undermine the whole point of
+private notes) and optionally `cards` (reveal events).
 
-**7.2 — Hvad betyder "sidste skriv vinder" konkret?** Det betyder *ikke*
-"først til at gribe kortet vinder" — det betyder **den seneste database-
-skrivning der rent faktisk når frem til Postgres, vinder, uanset hvem der
-startede først**. Konkret eksempel: Andreas begynder at trække et kort kl.
-14:32:00.000 og slipper det kl. 14:32:01.500 ved position (300, 400). Anne
-begynder at trække *samme* kort kl. 14:32:00.800 (mens Andreas stadig
-trækker) og slipper det kl. 14:32:01.200 ved position (150, 250). Selvom
-Andreas startede først, ankommer Annes UPDATE til databasen *før* Andreas'
-(kl. 01.200 vs. 01.500) — så Annes position bliver overskrevet af Andreas'
-0,3 sekund senere. Resultatet er ikke forudsigeligt for spillerne i øjeblikket
-det sker; det eneste der er garanteret er, at den sidste UPDATE der commits,
-er den der står tilbage. Der er ingen sammenfletning eller fejlmelding — bare
-overskrivning.
+**7.2 — What does "last write wins" actually mean?** It does *not* mean "first
+to grab the card wins" — it means **the most recent database write that
+actually reaches Postgres wins, regardless of who started first**. Concrete
+example: Andreas starts dragging a card at 14:32:00.000 and drops it at
+14:32:01.500 at position (300, 400). Anne starts dragging the *same* card at
+14:32:00.800 (while Andreas is still dragging) and drops it at 14:32:01.200
+at position (150, 250). Even though Andreas started first, Anne's UPDATE
+arrives at the database *before* Andreas's (01.200 vs. 01.500) — so Anne's
+position is overwritten by Andreas's 0.3 seconds later. The result is not
+predictable for players at the moment it happens; the only guarantee is that
+the last UPDATE to commit is the one that remains. There is no merging or
+error message — just overwriting.
 
-Til bordrollespil-tempo (kort flyttes typisk enkeltvis, ikke i intens
-konkurrence) er det fint at lade det være simpelt sådan. Hvis det i praksis
-bliver et problem (to spillere rammer samme kort ofte), er den lette
-mitigering at bruge Presence (samme lag som cursorerne) til at broadcaste
-"bruger X holder lige nu i kort Y" — så UI'et kan vise en lille markering/
-låse-ikon på kortet, **uden** en reel server-side lock. Det forhindrer ikke
-konflikten, men gør den synlig før den sker. Ikke bygget i v1, men nævnt her
-som den naturlige næste mitigering hvis det bliver relevant.
+At tabletop-RPG tempo (cards are typically moved one at a time, not in intense
+competition) it is fine to keep it simple like this. If it becomes a problem
+in practice (two players frequently hit the same card), the easy mitigation is
+to use Presence (same layer as cursors) to broadcast "user X is currently
+holding card Y" — so the UI can show a small indicator / lock icon on the card,
+**without** a real server-side lock. This does not prevent the conflict but
+makes it visible before it happens. Not built in v1, but noted here as the
+natural next mitigation if it becomes relevant.
 
-**7.3 — Login/invite-flow.** Se det udfoldede afsnit "Login/invite-flow,
-udfoldet" under afsnit 4 ovenfor — inkl. `invite_expires_at`-kolonnen og
-regenererings-mekanikken.
-
----
-
-## 8. Inden Claude Code — overset/uafklarede ting
-
-De fleste punkter herunder er nu afklaret (se §6). Det der står tilbage som
-reelt åbent eller som en konkret huske-ting til opsætningen:
-
-- **`cards.data jsonb` er stadig fri form.** Skemaet siger bevidst ikke noget
-  om hvad der står i `data` for hver korttype (briefing/npc/bevis/unnatural/
-  terminal/comms/clue) — det er en 1:1-arv fra `content.js`'s løse struktur.
-  Før Vue-komponenterne for hver korttype bygges, bør du skrive et konkret
-  TypeScript-interface (eller bare en kommentar-skitse) for `data`'s form pr.
-  type, ellers gentages "ny korttype = 4 steder at opdatere, ellers fejler
-  det stille"-problemet fra det gamle værktøj (se `dashboard/CLAUDE.md`) —
-  bare nu spredt over Vue-komponent + RLS + Postgres-constraint i stedet for
-  4 JS-filer. **Dette er det eneste punkt der reelt bør afklares før du går
-  i gang i Claude Code** — resten kan besluttes løbende.
-- **Genopkobling/"ghost cursors".** Realtime Presence rydder normalt selv op
-  når en klient lukker forbindelsen pænt, men ved netværksdrop/sove-bærbar
-  kan en cursor "hænge" synlig for andre i nogle sekunder før timeout. Værd
-  at vide før du undrer dig under test — det er forventet Presence-adfærd,
-  ikke en bug. (Bekræftet — ingen ændring nødvendig.)
-- **Mobil/responsivt.** Spillere logger sandsynligvis ind fra telefon ind
-  imellem (fx for at læse private noter mellem sessions, jf. §6). Det delte
-  board med drag/cursorer er primært designet til desktop-brug — stadig
-  uafklaret om mobil skal have en forenklet visning (read-only board, ingen
-  drag) eller forsøge fuld parity. Kan besluttes når du er der i kodningen.
-- **Miljøvariabler/deploy:** Netlify (afklaret, §6). Konkret opsætning:
-  `.env` i `.gitignore` fra dag ét, `SUPABASE_URL`/`SUPABASE_ANON_KEY` sættes
-  som Netlify environment variables (ikke i repoet), og en linje i
-  `platform/CLAUDE.md` der siger Claude Code aldrig må læse eller committe
-  `.env`-filer.
-- **Test:** Du har en anden person klar til RLS-/flow-test (afklaret, §6).
-  Test stadig konkret som: log ind som Handler i én browser, som spiller i
-  en anden (eller incognito), og bekræft at private noter, spoiler-kort og
-  pause-tilstanden faktisk virker som forventet for begge roller — ikke kun
-  at koden compilerer.
+**7.3 — Login / invite flow.** See the expanded "Login / invite flow, expanded"
+section under section 4 above — including the `invite_expires_at` column and
+the regeneration mechanism.
 
 ---
 
-## 9. Korttype-skema (`cards.data`)
+## 8. Before Claude Code — overlooked / unresolved items
 
-Det sidste åbne punkt fra §8 — nu afklaret. Formen pr. korttype er en 1:1-
-oversættelse af de felter `content.js` allerede bruger (se `dashboard/
-content.js` og kommentaren i toppen af filen), bare formaliseret som
-TypeScript-interfaces. **Gennemtvinges kun i TypeScript/Vue-laget, ikke som
-Postgres CHECK constraints** — `data`-kolonnen forbliver fri `jsonb`. Det er
-et bevidst valg: skemaet er stadig i bevægelse, og en forkert form giver i
-værste fald "kortet ser forkert ud", ikke datakorruption nogen andre rammes
-af. Hvis det engang bliver relevant (flere uafhængige indholdsforfattere,
-højere risiko), kan CHECK-constraints lægges på senere uden at ændre denne
-grundform.
+Most items below are now settled (see §6). What remains as genuinely open or
+as a concrete note for setup:
+
+- **`cards.data jsonb` is still free-form.** The schema deliberately says
+  nothing about what is in `data` for each card type (briefing/npc/evidence/
+  unnatural/terminal/comms/clue) — this is a deliberate 1:1 inheritance from
+  `content.js`'s loose structure. Before the Vue components for each card type
+  are built, write a concrete TypeScript interface (or just a commented sketch)
+  for `data`'s shape per type, otherwise the "new card type = 4 places to
+  update, otherwise it silently breaks" problem from the old tool (see
+  `dashboard/CLAUDE.md`) repeats — just now spread across Vue component + RLS
+  + Postgres constraint instead of 4 JS files. **This is the only point that
+  should genuinely be settled before starting in Claude Code** — the rest can
+  be decided as you go.
+- **Reconnection / "ghost cursors".** Realtime Presence normally cleans up
+  by itself when a client closes the connection gracefully, but on a network
+  drop / sleeping laptop a cursor can "hang" visible to others for a few
+  seconds before timeout. Worth knowing before you wonder during testing — this
+  is expected Presence behaviour, not a bug. (Confirmed — no change needed.)
+- **Mobile / responsive.** Players will likely log in from a phone occasionally
+  (e.g. to read private notes between sessions, per §6). The shared board with
+  drag/cursors is primarily designed for desktop use — still unresolved whether
+  mobile should get a simplified view (read-only board, no drag) or attempt full
+  parity. Can be decided when you reach it in the code.
+- **Environment variables / deploy:** Netlify (settled, §6). Concrete setup:
+  `.env` in `.gitignore` from day one, `SUPABASE_URL` / `SUPABASE_ANON_KEY`
+  set as Netlify environment variables (not in the repo), and a line in
+  `platform/CLAUDE.md` saying Claude Code should never read or commit `.env`
+  files.
+- **Testing:** You have another person ready for RLS / flow testing (settled,
+  §6). Still test concretely as: log in as handler in one browser, as player
+  in another (or incognito), and confirm that private notes, spoiler cards, and
+  the pause state actually work as expected for both roles — not just that the
+  code compiles.
+
+---
+
+## 9. Card type schema (`cards.data`)
+
+The last open point from §8 — now settled. The shape per card type is a 1:1
+translation of the fields `content.js` already uses (see `dashboard/content.js`
+and the comment at the top of the file), formalised as TypeScript interfaces.
+**Enforced only in the TypeScript/Vue layer, not as Postgres CHECK constraints**
+— the `data` column stays free `jsonb`. This is a deliberate choice: the schema
+is still in flux, and an incorrect shape gives at worst "the card looks wrong",
+not data corruption anyone else is affected by. If it ever becomes relevant
+(multiple independent content authors, higher risk), CHECK constraints can be
+added later without changing this base shape.
 
 ```ts
-// types/cards.ts — én interface pr. cards.type
+// types/cards.ts — one interface per cards.type
 
 interface BriefingData {
   heading: string;
   stamp: string;
-  body: string;          // kan indeholde ||sværtet tekst||
+  body: string;          // may contain ||redacted text||
 }
 
 interface HandoutData {
   caseNumber: string;
   body: string;
-  imageUrl?: string;     // FALDBACK: eksternt link. Primær vej for billeder
-                          // er at vedhæfte et group_asset via card_assets —
-                          // se note nedenfor.
+  imageUrl?: string;     // FALLBACK: external link. Primary path for images
+                          // is to attach a group_asset via card_assets —
+                          // see note below.
 }
 
 interface NpcData {
@@ -756,26 +758,26 @@ interface NpcData {
   role: string;
   affiliations: string[];
   notes: string;
-  imageUrl?: string;      // faldback, jf. ovenfor (erstatter det gamle photoUrl)
+  imageUrl?: string;      // fallback, see above (replaces the old photoUrl)
 }
 
 interface BevisData {
   exhibitNumber: string;
   foundAt: string;
   description: string;
-  analysis?: string;      // kan indeholde ||sværtet tekst||
-  imageUrl?: string;      // faldback, jf. ovenfor
+  analysis?: string;      // may contain ||redacted text||
+  imageUrl?: string;      // fallback, see above
 }
 
 interface UnnaturalData {
   title: string;
-  sanCost?: string;        // fri tekst, fx "1/1d6 SAN" — ikke et struktureret tal
-  body: string;            // kan indeholde ||sværtet tekst||
+  sanCost?: string;        // free text, e.g. "1/1d6 SAN" — not a structured number
+  body: string;            // may contain ||redacted text||
 }
 
 interface TerminalData {
-  // v1: kun visning. interactive/commands[] tilføjes som skema-udvidelse
-  // den dag terminal-interaktivitet (ROADMAP punkt 1) reelt bygges — udskudt.
+  // v1: display only. interactive/commands[] added as a schema extension
+  // when terminal interactivity (ROADMAP item 1) is actually built — deferred.
   lines: string[];
   showCursor?: boolean;
 }
@@ -783,34 +785,34 @@ interface TerminalData {
 interface CommsData {
   sender: string;
   message: string;
-  time?: string;           // fri tekst, in-fiction klokkeslæt — ikke en timestamp
+  time?: string;           // free text, in-fiction time — not a timestamp
 }
 
 type CardType = 'briefing' | 'handout' | 'npc' | 'bevis' | 'unnatural' | 'terminal' | 'comms';
 ```
 
-**Billeder: primært via asset-systemet.** `imageUrl`/`photoUrl` fra det
-gamle værktøj erstattes af `card_assets` (afsnit 2) som den primære vej —
-et billede uploades én gang som et `group_asset` og kan vedhæftes et eller
-flere kort, hentet via en kortlivet signeret URL (samme adgangskontrol som
-alle andre assets). Det valgfri `imageUrl`-felt i `data` er en **faldback**
-til et hurtigt eksternt link, når et rigtigt upload er overkill — og det
-sparer Storage-plads for engangslinks. Vue-komponenten for et korttype bør
-derfor tjekke `card_assets` (kind='image') først, og kun falde tilbage til
-`data.imageUrl` hvis intet asset er vedhæftet.
+**Images: primarily via the asset system.** `imageUrl` / `photoUrl` from the
+old tool is replaced by `card_assets` (section 2) as the primary path — an
+image is uploaded once as a `group_asset` and can be attached to one or more
+cards, fetched via a short-lived signed URL (same access control as all other
+assets). The optional `imageUrl` field in `data` is a **fallback** for a
+quick external link when a proper upload is overkill — and it saves Storage
+space for one-off links. The Vue component for a card type should therefore
+check `card_assets` (kind='image') first, and only fall back to `data.imageUrl`
+if no asset is attached.
 
-**Spiller-oprettede kort bruger samme typer og felter som Handler.**
-`origin = 'player'` styrer kun *rettigheder* (RLS — hvem må indsætte/redigere,
-og hvornår sessionen tillader det), ikke en anden datastruktur. Der er ingen
-RLS-begrænsning på hvilken `type` en spiller vælger — en spiller kan i
-princippet oprette et `npc`- eller `unnatural`-kort med samme felter som
-Handler ville bruge. Hvis du vil begrænse hvilke typer der reelt er
-meningsfulde for spillere at vælge i UI'et (fx kun `bevis`/`comms`, ikke
-`briefing`, som tematisk er Handlerens mission-instruks), er det en **UI-
-beslutning** i type-vælgeren ved "opret kort", ikke en database-regel — kan
-justeres frit uden migration.
+**Player-created cards use the same types and fields as handler cards.**
+`origin = 'player'` controls only *permissions* (RLS — who may insert/edit,
+and when the session allows it), not a different data structure. There is no
+RLS restriction on which `type` a player chooses — a player can in principle
+create an `npc` or `unnatural` card with the same fields the handler would use.
+If you want to limit which types are actually meaningful for players to choose
+in the UI (e.g. only `bevis` / `comms`, not `briefing`, which thematically is
+the handler's mission briefing), that is a **UI decision** in the type selector
+on "create card" — not a database rule, and can be changed freely without a
+migration.
 
-**Redaktionssyntaks (`||tekst||`) er ikke en del af skemaet i sig selv** —
-det er en tekst-konvention inde i de fri-tekst-felter (`body`, `notes`,
-`description`, `analysis`, `message`), parset i Vue-komponenten ved render,
-præcis som `renderRedacted()` gør i det nuværende `display.html`.
+**The redaction syntax (`||text||`) is not part of the schema itself** — it is
+a text convention inside the free-text fields (`body`, `notes`, `description`,
+`analysis`, `message`), parsed in the Vue component at render time, exactly as
+`renderRedacted()` does in the current `display.html`.
