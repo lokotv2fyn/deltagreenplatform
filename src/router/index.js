@@ -15,6 +15,12 @@ const routes = [
     meta: { public: true },
   },
   {
+    path: '/demo',
+    name: 'demo',
+    component: () => import('../views/DemoView.vue'),
+    meta: { public: true },
+  },
+  {
     path: '/dashboard',
     name: 'dashboard',
     component: () => import('../views/DashboardView.vue'),
