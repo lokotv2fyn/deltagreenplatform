@@ -15,3 +15,6 @@ Feltet hedder "Tidspunkt (in-fiction)" — "in-fiction" skal fjernes, feltet ska
 
 **Reveal interrupt**
 Fuld-skærms interrupt til spillere ved handler-reveal virker ikke — kort dukker op på canvas men interrupt-overlay trigges ikke. Se `REVEAL_PROBLEM.md` for fuld diagnose og næste skridt.
+
+**Handler view: Kort på bordet/bunke** 
+Alle kort er på bordet, medmindre de ikke er revealed, så der er noget logik her, der fejler.

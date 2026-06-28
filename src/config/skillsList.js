@@ -1,4 +1,4 @@
-// Base values — verificér mod fysiske bøger når de ankommer
+// Base values — verify against physical books when they arrive
 export const SKILLS = [
   { key: 'accounting',        label: 'Accounting',                  base: 10 },
   { key: 'alertness',         label: 'Alertness',                   base: 20 },

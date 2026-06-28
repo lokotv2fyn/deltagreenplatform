@@ -1,0 +1,211 @@
+{
+  "lang": {
+    "da": "DA",
+    "en": "EN"
+  },
+  "nav": {
+    "back": "← Operationer",
+    "disconnect": "Afbryd forbindelse"
+  },
+  "login": {
+    "title": "Find den perfekte nat i operaen",
+    "email_placeholder": "Din e-mailadresse",
+    "submit": "Send login-link",
+    "sending": "Sender…",
+    "sent": "Tjek din indbakke — vi har sendt et login-link til"
+  },
+  "dashboard": {
+    "classified": "Program // Klassificeret adgang",
+    "title": "Delta Green",
+    "operations": "Aktive operationer",
+    "loading": "Henter filer…",
+    "file_count": "{n} fil tilgængelig | {n} filer tilgængelige",
+    "empty": "Ingen operationer tilknyttet denne agent",
+    "new_op": "+ Ny operation",
+    "role_handler": "▸ Handler",
+    "role_agent": "▸ Agent",
+    "badge_handler": "Handler",
+    "badge_agent": "Agent",
+    "modal_title": "Ny operation",
+    "modal_subtitle": "Opret operationsfil",
+    "op_name": "Operationsnavn",
+    "op_name_placeholder": "fx Delta Green — Roskilde",
+    "op_desc": "Beskrivelse",
+    "optional": "(valgfri)",
+    "desc_placeholder": "Vises for agenter",
+    "cancel": "Annuller",
+    "confirm": "Bekræft",
+    "creating": "Opretter…"
+  },
+  "session": {
+    "active": "● AKTIV",
+    "paused": "◌ PAUSET",
+    "none": "Ingen session",
+    "start": "Start session",
+    "stop": "Stop session",
+    "paused_banner": "Sessionen er pauset af Handler — boardet er midlertidigt låst for ændringer.",
+    "no_session_banner": "Ingen aktiv session — Handler har ikke startet sessionen endnu.",
+    "dialog_label": "Ny session",
+    "dialog_title": "Start operationssession",
+    "session_label": "Label",
+    "session_placeholder": "fx Session 3 — Sygehuset",
+    "start_btn": "Start",
+    "cancel": "Annuller"
+  },
+  "tabs": {
+    "board": "Board",
+    "visual": "Visuelt",
+    "notes": "Mine noter",
+    "character": "Karakter",
+    "profile": "Profil",
+    "agents": "Agenter",
+    "player_notes": "Spillernoter",
+    "activity": "Aktivitet",
+    "settings": "Indstillinger"
+  },
+  "board": {
+    "loading": "Henter filer…",
+    "card_count": "{n} kort",
+    "create": "+ Opret kort",
+    "paused": "Pauset",
+    "awaiting": "Afventer session",
+    "on_table": "På bordet",
+    "in_deck": "Bunke",
+    "empty_player": "Ingen kort er revealed endnu.",
+    "empty_handler": "Ingen kort endnu.",
+    "on_table_count": "· {n} på bordet"
+  },
+  "chain": {
+    "title": "Rød tråd",
+    "hide": "Skjul for spillere",
+    "show": "Vis for spillere",
+    "hidden": "Den røde tråd er skjult af Handler.",
+    "empty": "Ingen kort i tråden endnu.",
+    "move_up": "Flyt op",
+    "move_down": "Flyt ned",
+    "remove": "Fjern fra tråd"
+  },
+  "card": {
+    "spoiler": "spoiler",
+    "edit": "Rediger",
+    "delete": "Slet",
+    "delete_confirm": "Slet \"{label}\"? Dette kan ikke fortrydes.",
+    "reveal_hide": "Skjul for spillere",
+    "reveal_show": "Reveal for spillere",
+    "move_deck": "Flyt til/fra bunke",
+    "remove_chain": "Fjern fra rød tråd (pos. {pos})",
+    "add_chain": "Tilføj til rød tråd",
+    "yes": "Ja",
+    "no": "Nej"
+  },
+  "modal": {
+    "edit_header": "Rediger fil",
+    "new_header": "Ny fil",
+    "edit_title": "Rediger kort",
+    "new_title": "Opret kort",
+    "type_label": "Type",
+    "card_label": "Titel / label",
+    "card_label_placeholder": "Vises på kortets forside",
+    "optional": "(valgfri)",
+    "reveal_toggle": "Reveal til spillere",
+    "auto_reveal_on": "Kortet vises for alle med det samme (auto-reveal er slået til)",
+    "auto_reveal_off": "Kortet skal godkendes af Handler før det vises for andre",
+    "cancel": "Annuller",
+    "saving": "Gemmer…",
+    "save_changes": "Gem ændringer",
+    "create": "Opret kort"
+  },
+  "reveal": {
+    "sms_header": "NYT OPKALD / BESKED",
+    "sms_from": "Fra: {sender}",
+    "sms_unknown": "Ukendt",
+    "dismiss": "Bekræft modtagelse"
+  },
+  "notes": {
+    "title": "Mine noter",
+    "new": "+ Ny note",
+    "loading": "Henter noter…",
+    "empty": "Ingen noter endnu.",
+    "card_link": "Kobl til kort",
+    "card_none": "— ingen —",
+    "body_placeholder": "Skriv din note…",
+    "delete": "Slet",
+    "cancel": "Annuller",
+    "save": "Gem",
+    "saving": "Gemmer…",
+    "edit": "Rediger",
+    "handler_loading": "Henter noter…",
+    "handler_empty": "Ingen spillernoter endnu.",
+    "unknown_author": "Ukendt"
+  },
+  "profile": {
+    "title": "Agent-identitet",
+    "name_label": "Kaldenavn",
+    "name_placeholder": "Hvad skal de andre kalde dig?",
+    "name_hint": "Vises for Handler og andre spillere.",
+    "save": "Gem",
+    "saving": "Gemmer…",
+    "saved": "Gemt."
+  },
+  "join": {
+    "loading": "Tilmelder dig operationen…",
+    "success": "Adgang bekræftet.",
+    "redirecting": "Sender dig videre…",
+    "contact_handler": "Bed din Handler om at sende et nyt invite-link."
+  },
+  "agents": {
+    "loading": "Henter agenter…",
+    "empty": "Ingen agenter har oprettet karakterark endnu.",
+    "no_sheet": "{name} har ikke udfyldt karakterark endnu."
+  },
+  "activity": {
+    "loading": "Henter log…",
+    "empty": "Ingen aktivitet endnu.",
+    "actions": {
+      "card_created": "oprettede kort",
+      "card_revealed": "revealed kort",
+      "card_minimized": "minimerede kort",
+      "card_restored": "åbnede kort",
+      "position_moved": "flyttede",
+      "chain_added": "tilføjede rød tråd på",
+      "chain_removed": "fjernede rød tråd fra",
+      "note_created": "oprettede en note",
+      "note_updated": "opdaterede en note"
+    }
+  },
+  "settings": {
+    "invite_title": "Invite-link",
+    "copy": "Kopiér",
+    "copied": "Kopieret",
+    "expires": "Udløber {date}",
+    "regenerate": "Generér nyt link →",
+    "player_cards_title": "Spiller-kort",
+    "auto_reveal_label": "Auto-reveal spiller-oprettede kort",
+    "auto_reveal_hint": "Når aktiv: kort oprettet af spillere vises for alle med det samme",
+    "group_name_title": "Gruppenavn",
+    "group_name_placeholder": "Navn på operationen",
+    "group_desc_title": "Beskrivelse",
+    "group_desc_placeholder": "Vises for agenter på forsiden",
+    "save": "Gem"
+  },
+  "handler": {
+    "role": "Handler"
+  },
+  "play": {
+    "role": "Agent"
+  },
+  "cardTypes": {
+    "briefing": "Briefing",
+    "handout": "Handout",
+    "npc": "NPC",
+    "bevis": "Bevis",
+    "unnatural": "Unnatural",
+    "terminal": "Terminal",
+    "comms": "Komm.",
+    "player_bevis": "Ledetråd",
+    "player_npc": "Person",
+    "player_comms": "Besked",
+    "player_handout": "Fund",
+    "player_unnatural": "Det Unaturlige"
+  }
+}

@@ -43,7 +43,7 @@ export const useSessionStore = defineStore('session', () => {
     await loadGroup(group.value.id)
   }
 
-  // Realtime: opdatér session-status når en anden klient ændrer den
+  // Realtime: update session status when another client changes it
   let channel = null
   function subscribeSession(groupId) {
     channel = supabase

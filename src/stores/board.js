@@ -111,7 +111,7 @@ export const useBoardStore = defineStore('board', () => {
     if (error) throw error
   }
 
-  // ─── Rød tråd ──────────────────────────────────────────────────────────────
+  // ─── Red thread ─────────────────────────────────────────────────────────────
 
   async function addToChain(cardId) {
     const nextPos = chainLinks.value.length

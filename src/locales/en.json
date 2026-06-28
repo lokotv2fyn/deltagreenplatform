@@ -1,0 +1,211 @@
+{
+  "lang": {
+    "da": "DA",
+    "en": "EN"
+  },
+  "nav": {
+    "back": "← Operations",
+    "disconnect": "Disconnect"
+  },
+  "login": {
+    "title": "Find the perfect night at the opera",
+    "email_placeholder": "Your email address",
+    "submit": "Send login link",
+    "sending": "Sending…",
+    "sent": "Check your inbox — we sent a login link to"
+  },
+  "dashboard": {
+    "classified": "Program // Classified access",
+    "title": "Delta Green",
+    "operations": "Active operations",
+    "loading": "Loading files…",
+    "file_count": "{n} file available | {n} files available",
+    "empty": "No operations assigned to this agent",
+    "new_op": "+ New operation",
+    "role_handler": "▸ Handler",
+    "role_agent": "▸ Agent",
+    "badge_handler": "Handler",
+    "badge_agent": "Agent",
+    "modal_title": "New operation",
+    "modal_subtitle": "Create operation file",
+    "op_name": "Operation name",
+    "op_name_placeholder": "e.g. Delta Green — Roskilde",
+    "op_desc": "Description",
+    "optional": "(optional)",
+    "desc_placeholder": "Shown to agents",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "creating": "Creating…"
+  },
+  "session": {
+    "active": "● ACTIVE",
+    "paused": "◌ PAUSED",
+    "none": "No session",
+    "start": "Start session",
+    "stop": "Stop session",
+    "paused_banner": "Session paused by Handler — board is temporarily locked for changes.",
+    "no_session_banner": "No active session — Handler has not started the session yet.",
+    "dialog_label": "New session",
+    "dialog_title": "Start operation session",
+    "session_label": "Label",
+    "session_placeholder": "e.g. Session 3 — The Hospital",
+    "start_btn": "Start",
+    "cancel": "Cancel"
+  },
+  "tabs": {
+    "board": "Board",
+    "visual": "Visual",
+    "notes": "My notes",
+    "character": "Character",
+    "profile": "Profile",
+    "agents": "Agents",
+    "player_notes": "Player notes",
+    "activity": "Activity",
+    "settings": "Settings"
+  },
+  "board": {
+    "loading": "Loading files…",
+    "card_count": "{n} cards",
+    "create": "+ Create card",
+    "paused": "Paused",
+    "awaiting": "Awaiting session",
+    "on_table": "On the board",
+    "in_deck": "Deck",
+    "empty_player": "No cards have been revealed yet.",
+    "empty_handler": "No cards yet.",
+    "on_table_count": "· {n} on the board"
+  },
+  "chain": {
+    "title": "Red thread",
+    "hide": "Hide from players",
+    "show": "Show to players",
+    "hidden": "The red thread is hidden by Handler.",
+    "empty": "No cards in the thread yet.",
+    "move_up": "Move up",
+    "move_down": "Move down",
+    "remove": "Remove from thread"
+  },
+  "card": {
+    "spoiler": "spoiler",
+    "edit": "Edit",
+    "delete": "Delete",
+    "delete_confirm": "Delete \"{label}\"? This cannot be undone.",
+    "reveal_hide": "Hide from players",
+    "reveal_show": "Reveal to players",
+    "move_deck": "Move to/from deck",
+    "remove_chain": "Remove from red thread (pos. {pos})",
+    "add_chain": "Add to red thread",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "modal": {
+    "edit_header": "Edit file",
+    "new_header": "New file",
+    "edit_title": "Edit card",
+    "new_title": "Create card",
+    "type_label": "Type",
+    "card_label": "Title / label",
+    "card_label_placeholder": "Shown on the card front",
+    "optional": "(optional)",
+    "reveal_toggle": "Reveal to players",
+    "auto_reveal_on": "Card is shown to everyone immediately (auto-reveal is on)",
+    "auto_reveal_off": "Card must be approved by Handler before others can see it",
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "save_changes": "Save changes",
+    "create": "Create card"
+  },
+  "reveal": {
+    "sms_header": "NEW CALL / MESSAGE",
+    "sms_from": "From: {sender}",
+    "sms_unknown": "Unknown",
+    "dismiss": "Acknowledge receipt"
+  },
+  "notes": {
+    "title": "My notes",
+    "new": "+ New note",
+    "loading": "Loading notes…",
+    "empty": "No notes yet.",
+    "card_link": "Link to card",
+    "card_none": "— none —",
+    "body_placeholder": "Write your note…",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving…",
+    "edit": "Edit",
+    "handler_loading": "Loading notes…",
+    "handler_empty": "No player notes yet.",
+    "unknown_author": "Unknown"
+  },
+  "profile": {
+    "title": "Agent identity",
+    "name_label": "Call sign",
+    "name_placeholder": "What should others call you?",
+    "name_hint": "Shown to Handler and other players.",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Saved."
+  },
+  "join": {
+    "loading": "Joining operation…",
+    "success": "Access confirmed.",
+    "redirecting": "Redirecting…",
+    "contact_handler": "Ask your Handler to send a new invite link."
+  },
+  "agents": {
+    "loading": "Loading agents…",
+    "empty": "No agents have created a character sheet yet.",
+    "no_sheet": "{name} has not filled in a character sheet yet."
+  },
+  "activity": {
+    "loading": "Loading log…",
+    "empty": "No activity yet.",
+    "actions": {
+      "card_created": "created card",
+      "card_revealed": "revealed card",
+      "card_minimized": "minimized card",
+      "card_restored": "restored card",
+      "position_moved": "moved",
+      "chain_added": "added to red thread:",
+      "chain_removed": "removed from red thread:",
+      "note_created": "created a note",
+      "note_updated": "updated a note"
+    }
+  },
+  "settings": {
+    "invite_title": "Invite link",
+    "copy": "Copy",
+    "copied": "Copied",
+    "expires": "Expires {date}",
+    "regenerate": "Generate new link →",
+    "player_cards_title": "Player cards",
+    "auto_reveal_label": "Auto-reveal player-created cards",
+    "auto_reveal_hint": "When on: cards created by players are shown to everyone immediately",
+    "group_name_title": "Group name",
+    "group_name_placeholder": "Name of the operation",
+    "group_desc_title": "Description",
+    "group_desc_placeholder": "Shown to agents on the front page",
+    "save": "Save"
+  },
+  "handler": {
+    "role": "Handler"
+  },
+  "play": {
+    "role": "Agent"
+  },
+  "cardTypes": {
+    "briefing": "Briefing",
+    "handout": "Handout",
+    "npc": "NPC",
+    "bevis": "Evidence",
+    "unnatural": "Unnatural",
+    "terminal": "Terminal",
+    "comms": "Comms",
+    "player_bevis": "Clue",
+    "player_npc": "Person",
+    "player_comms": "Message",
+    "player_handout": "Find",
+    "player_unnatural": "The Unnatural"
+  }
+}

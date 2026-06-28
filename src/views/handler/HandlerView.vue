@@ -6,37 +6,44 @@
       <RouterLink to="/dashboard"
                   class="text-xs font-mono tracking-[0.1em] transition-colors back-link"
                   style="color: #506858;">
-        ← Operationer
+        {{ t('nav.back') }}
       </RouterLink>
       <svg width="10" height="9" viewBox="0 0 10 9" fill="none" class="shrink-0">
         <polygon points="5,0 0,8 10,8" fill="#4a7c59"/>
       </svg>
       <span class="text-xs font-mono tracking-wide" style="color: #c4c4c4;">{{ session.group?.name }}</span>
-      <span class="text-xs font-mono tracking-[0.2em] uppercase" style="color: #92400e;">Handler</span>
+      <span class="text-xs font-mono tracking-[0.2em] uppercase" style="color: #92400e;">{{ t('handler.role') }}</span>
 
       <div class="ml-auto flex items-center gap-3">
         <span v-if="session.currentSession" class="text-xs font-mono tracking-wider"
               :style="session.isActive ? 'color: #4a7c59;' : 'color: #92400e;'">
-          {{ session.isActive ? '● AKTIV' : '◌ PAUSET' }}
+          {{ session.isActive ? t('session.active') : t('session.paused') }}
           <span v-if="session.currentSession.label" class="ml-1" style="color: #506858;">
             {{ session.currentSession.label }}
           </span>
         </span>
-        <span v-else class="text-xs font-mono tracking-wider" style="color: #506858;">Ingen session</span>
+        <span v-else class="text-xs font-mono tracking-wider" style="color: #506858;">{{ t('session.none') }}</span>
 
         <button v-if="!session.currentSession || session.isPaused"
                 @click="promptStartSession"
                 class="text-xs font-mono tracking-[0.1em] uppercase px-3 py-1 transition-colors session-btn-start"
                 style="border: 1px solid #1f4a2a; color: #4a7c59;">
-          Start session
+          {{ t('session.start') }}
         </button>
         <button v-if="session.isActive"
                 @click="doStopSession"
                 class="text-xs font-mono tracking-[0.1em] uppercase px-3 py-1 transition-colors session-btn-stop"
                 style="border: 1px solid #2a2a2a; color: #5e8068;">
-          Stop session
+          {{ t('session.stop') }}
         </button>
 
+        <button @click="toggleLang"
+                class="text-xs font-mono transition-colors"
+                style="color: #2a3a2e; padding-left: 0.5rem; border-left: 1px solid #1a1a1a;"
+                onmouseenter="this.style.color='#4a7c59'"
+                onmouseleave="this.style.color='#2a3a2e'">
+          {{ locale === 'da' ? t('lang.en') : t('lang.da') }}
+        </button>
         <span class="text-xs font-mono" style="color: #2a3a2e; padding-left: 0.5rem; border-left: 1px solid #1a1a1a;">v0.513</span>
       </div>
     </header>
@@ -49,14 +56,14 @@
               :style="activeTab === tab.id
                 ? 'border-bottom: 1px solid #888; color: #c4c4c4; margin-bottom: -1px;'
                 : 'border-bottom: 1px solid transparent; color: #506858; margin-bottom: -1px;'">
-        {{ tab.label }}
+        {{ t(tab.labelKey) }}
       </button>
     </nav>
 
     <!-- Content -->
     <div class="flex-1" :class="activeTab === 'visual' ? 'overflow-hidden' : 'overflow-auto p-6'">
 
-      <!-- ─── VISUELT ──────────────────────────────────────────────────── -->
+      <!-- ─── VISUAL ──────────────────────────────────────────────────── -->
       <template v-if="activeTab === 'visual'">
         <VisualBoard
           :group-id="groupId"
@@ -71,23 +78,29 @@
       <template v-else-if="activeTab === 'board'">
         <div class="flex items-center justify-between mb-6">
           <p class="text-xs font-mono tracking-wider" style="color: #5e8068;">
-            {{ board.cards.length }} kort
-            <span v-if="board.onBoard.length" style="color: #506858;"> · {{ board.onBoard.length }} på bordet</span>
+            {{ t('board.card_count', { n: board.cards.length }) }}
+            <span v-if="board.onBoard.length" style="color: #506858;">
+              {{ t('board.on_table_count', { n: board.onBoard.length }) }}
+            </span>
           </p>
           <button @click="showCreate = true"
                   class="text-xs font-mono tracking-[0.1em] uppercase px-3 py-1.5 transition-colors action-btn"
                   style="border: 1px solid #2a2a2a; color: #5e8068;">
-            + Opret kort
+            {{ t('board.create') }}
           </button>
         </div>
 
-        <div v-if="board.loading" class="text-xs font-mono tracking-wider" style="color: #506858;">Henter filer…</div>
+        <div v-if="board.loading" class="text-xs font-mono tracking-wider" style="color: #506858;">
+          {{ t('board.loading') }}
+        </div>
 
         <div v-else>
           <TheChain :is-handler="true" :can-edit="true" />
 
           <section v-if="board.onBoard.length" class="mb-8">
-            <p class="text-xs font-mono tracking-[0.2em] uppercase mb-3" style="color: #506858;">På bordet</p>
+            <p class="text-xs font-mono tracking-[0.2em] uppercase mb-3" style="color: #506858;">
+              {{ t('board.on_table') }}
+            </p>
             <div class="space-y-1">
               <CardItem v-for="card in board.onBoard" :key="card.id"
                         :card="card" :is-handler="true" :can-edit-chain="true" />
@@ -95,7 +108,9 @@
           </section>
 
           <section v-if="board.inDeck.length">
-            <p class="text-xs font-mono tracking-[0.2em] uppercase mb-3" style="color: #506858;">Bunke</p>
+            <p class="text-xs font-mono tracking-[0.2em] uppercase mb-3" style="color: #506858;">
+              {{ t('board.in_deck') }}
+            </p>
             <div class="space-y-1">
               <CardItem v-for="card in board.inDeck" :key="card.id"
                         :card="card" :is-handler="true" :can-edit-chain="true" />
@@ -103,16 +118,18 @@
           </section>
 
           <div v-if="!board.cards.length" class="text-xs font-mono" style="color: #506858;">
-            Ingen kort endnu.
+            {{ t('board.empty_handler') }}
           </div>
         </div>
       </template>
 
-      <!-- ─── AGENTER ──────────────────────────────────────────────────── -->
+      <!-- ─── AGENTS ──────────────────────────────────────────────────── -->
       <template v-else-if="activeTab === 'agents'">
-        <div v-if="character.loading" class="text-xs font-mono" style="color: #506858;">Henter agenter…</div>
+        <div v-if="character.loading" class="text-xs font-mono" style="color: #506858;">
+          {{ t('agents.loading') }}
+        </div>
         <div v-else-if="!character.allSheets.length" class="text-xs font-mono" style="color: #506858;">
-          Ingen agenter har oprettet karakterark endnu.
+          {{ t('agents.empty') }}
         </div>
         <div v-else>
           <div class="flex gap-0 mb-6" style="border-bottom: 1px solid #1a1a1a;">
@@ -128,7 +145,7 @@
           <template v-for="agent in character.allSheets" :key="agent.userId">
             <div v-if="selectedAgent === agent.userId">
               <p v-if="!agent.sheet" class="text-xs font-mono" style="color: #506858;">
-                {{ agent.displayName }} har ikke udfyldt karakterark endnu.
+                {{ t('agents.no_sheet', { name: agent.displayName }) }}
               </p>
               <CharacterSheet v-else :group-id="groupId" :initial-data="agent.sheet.data" :readonly="true" />
             </div>
@@ -136,10 +153,10 @@
         </div>
       </template>
 
-      <!-- ─── SPILLERNOTER ──────────────────────────────────────────────────── -->
+      <!-- ─── PLAYER NOTES ──────────────────────────────────────────────────── -->
       <template v-else-if="activeTab === 'notes'">
-        <div v-if="notesLoading" class="text-xs font-mono" style="color: #506858;">Henter noter…</div>
-        <div v-else-if="!notes.length" class="text-xs font-mono" style="color: #506858;">Ingen spillernoter endnu.</div>
+        <div v-if="notesLoading" class="text-xs font-mono" style="color: #506858;">{{ t('notes.handler_loading') }}</div>
+        <div v-else-if="!notes.length" class="text-xs font-mono" style="color: #506858;">{{ t('notes.handler_empty') }}</div>
         <div v-else class="space-y-6">
           <div v-for="(group, author) in notesByAuthor" :key="author">
             <p class="text-xs font-mono tracking-[0.2em] uppercase mb-3" style="color: #506858;">{{ author }}</p>
@@ -155,10 +172,10 @@
         </div>
       </template>
 
-      <!-- ─── AKTIVITET ──────────────────────────────────────────────── -->
+      <!-- ─── ACTIVITY ──────────────────────────────────────────────── -->
       <template v-else-if="activeTab === 'activity'">
-        <div v-if="activityLoading" class="text-xs font-mono" style="color: #506858;">Henter log…</div>
-        <div v-else-if="!activity.length" class="text-xs font-mono" style="color: #506858;">Ingen aktivitet endnu.</div>
+        <div v-if="activityLoading" class="text-xs font-mono" style="color: #506858;">{{ t('activity.loading') }}</div>
+        <div v-else-if="!activity.length" class="text-xs font-mono" style="color: #506858;">{{ t('activity.empty') }}</div>
         <ul v-else class="space-y-1">
           <li v-for="entry in activity" :key="entry.id"
               class="flex items-baseline gap-4 text-xs font-mono">
@@ -172,13 +189,13 @@
         </ul>
       </template>
 
-      <!-- ─── INDSTILLINGER ─────────────────────────────────────────── -->
+      <!-- ─── SETTINGS ─────────────────────────────────────────── -->
       <template v-else-if="activeTab === 'settings'">
         <div class="max-w-md space-y-10">
 
           <section>
             <p class="text-xs font-mono tracking-[0.2em] uppercase mb-4" style="color: #506858; border-bottom: 1px solid #1a1a1a; padding-bottom: 0.5rem;">
-              Invite-link
+              {{ t('settings.invite_title') }}
             </p>
             <div v-if="session.group?.invite_code" class="space-y-2">
               <div class="flex items-center gap-2">
@@ -189,60 +206,60 @@
                 <button @click="copyInvite"
                         class="text-xs font-mono px-3 py-2 transition-colors action-btn shrink-0"
                         style="border: 1px solid #2a2a2a; color: #5e8068;">
-                  {{ copied ? 'Kopieret' : 'Kopiér' }}
+                  {{ copied ? t('settings.copied') : t('settings.copy') }}
                 </button>
               </div>
               <p v-if="session.group.invite_expires_at" class="text-xs font-mono" style="color: #506858;">
-                Udløber {{ formatDate(session.group.invite_expires_at) }}
+                {{ t('settings.expires', { date: formatDate(session.group.invite_expires_at) }) }}
               </p>
               <button @click="regenerateInvite"
                       class="text-xs font-mono transition-colors action-btn-text"
                       style="color: #506858;">
-                Generér nyt link →
+                {{ t('settings.regenerate') }}
               </button>
             </div>
           </section>
 
           <section>
             <p class="text-xs font-mono tracking-[0.2em] uppercase mb-4" style="color: #506858; border-bottom: 1px solid #1a1a1a; padding-bottom: 0.5rem;">
-              Spiller-kort
+              {{ t('settings.player_cards_title') }}
             </p>
             <label class="flex items-center gap-3 cursor-pointer">
               <input type="checkbox" v-model="autoReveal" @change="saveAutoReveal" class="accent-neutral-600 w-3.5 h-3.5" />
-              <span class="text-sm font-mono" style="color: #888;">Auto-reveal spiller-oprettede kort</span>
+              <span class="text-sm font-mono" style="color: #888;">{{ t('settings.auto_reveal_label') }}</span>
             </label>
             <p class="text-xs font-mono mt-1 ml-6" style="color: #506858;">
-              Når aktiv: kort oprettet af spillere vises for alle med det samme
+              {{ t('settings.auto_reveal_hint') }}
             </p>
           </section>
 
           <section>
             <p class="text-xs font-mono tracking-[0.2em] uppercase mb-4" style="color: #506858; border-bottom: 1px solid #1a1a1a; padding-bottom: 0.5rem;">
-              Gruppenavn
+              {{ t('settings.group_name_title') }}
             </p>
             <input v-model="groupName" type="text"
                    class="w-full font-mono text-sm px-3 py-2 focus:outline-none mb-2"
                    style="background: #0d0d0d; border: 1px solid #1a1a1a; color: #c4c4c4;"
-                   placeholder="Navn på operationen" />
+                   :placeholder="t('settings.group_name_placeholder')" />
             <button @click="saveName"
                     class="text-xs font-mono tracking-[0.1em] uppercase px-3 py-1.5 transition-colors action-btn"
                     style="border: 1px solid #2a2a2a; color: #5e8068;">
-              Gem
+              {{ t('settings.save') }}
             </button>
           </section>
 
           <section>
             <p class="text-xs font-mono tracking-[0.2em] uppercase mb-4" style="color: #506858; border-bottom: 1px solid #1a1a1a; padding-bottom: 0.5rem;">
-              Beskrivelse
+              {{ t('settings.group_desc_title') }}
             </p>
             <textarea v-model="groupDescription" rows="3"
                       class="w-full font-mono text-sm px-3 py-2 focus:outline-none resize-none"
                       style="background: #0d0d0d; border: 1px solid #1a1a1a; color: #c4c4c4;"
-                      placeholder="Vises for agenter på forsiden" />
+                      :placeholder="t('settings.group_desc_placeholder')" />
             <button @click="saveDescription"
                     class="mt-2 text-xs font-mono tracking-[0.1em] uppercase px-3 py-1.5 transition-colors action-btn"
                     style="border: 1px solid #2a2a2a; color: #5e8068;">
-              Gem
+              {{ t('settings.save') }}
             </button>
           </section>
 
@@ -267,14 +284,16 @@
          @click.self="showStartDialog = false">
       <div class="w-full max-w-sm" style="background: #0d0d0d; border: 1px solid #2a2a2a;">
         <div class="px-6 py-4" style="border-bottom: 1px solid #1a1a1a;">
-          <p class="text-xs font-mono tracking-[0.25em] uppercase mb-1" style="color: #506858;">Ny session</p>
-          <h2 class="text-sm font-mono" style="color: #c4c4c4;">Start operationssession</h2>
+          <p class="text-xs font-mono tracking-[0.25em] uppercase mb-1" style="color: #506858;">
+            {{ t('session.dialog_label') }}
+          </p>
+          <h2 class="text-sm font-mono" style="color: #c4c4c4;">{{ t('session.dialog_title') }}</h2>
         </div>
         <div class="px-6 py-5">
           <label class="text-xs font-mono tracking-[0.15em] uppercase block mb-2" style="color: #506858;">
-            Label <span style="color: #3a5040;">(valgfri)</span>
+            {{ t('session.session_label') }} <span style="color: #3a5040;">{{ t('dashboard.optional') }}</span>
           </label>
-          <input v-model="sessionLabel" type="text" placeholder="fx Session 3 — Sygehuset"
+          <input v-model="sessionLabel" type="text" :placeholder="t('session.session_placeholder')"
                  class="w-full font-mono text-sm px-3 py-2 focus:outline-none"
                  style="background: #080808; border: 1px solid #2a2a2a; color: #c4c4c4;" />
         </div>
@@ -282,12 +301,12 @@
           <button @click="showStartDialog = false"
                   class="text-xs font-mono tracking-[0.1em] uppercase transition-colors"
                   style="color: #506858;">
-            Annuller
+            {{ t('session.cancel') }}
           </button>
           <button @click="doStartSession"
                   class="text-xs font-mono tracking-[0.1em] uppercase px-4 py-2 transition-colors session-btn-start"
                   style="border: 1px solid #1f4a2a; color: #4a7c59;">
-            Start
+            {{ t('session.start_btn') }}
           </button>
         </div>
       </div>
@@ -299,6 +318,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { supabase } from '../../lib/supabase'
 import { useSessionStore } from '../../stores/session'
 import { useBoardStore } from '../../stores/board'
@@ -308,6 +328,10 @@ import TheChain from '../../components/board/TheChain.vue'
 import CharacterSheet from '../../components/CharacterSheet.vue'
 import { useCharacterStore } from '../../stores/character'
 import VisualBoard from '../../components/board/VisualBoard.vue'
+import { useLang } from '../../composables/useLang'
+
+const { t, locale: i18nLocale } = useI18n()
+const { locale, toggleLang } = useLang()
 
 const route = useRoute()
 const groupId = route.params.groupId
@@ -323,12 +347,12 @@ const showStartDialog = ref(false)
 const sessionLabel = ref('')
 
 const tabs = [
-  { id: 'board',    label: 'Board' },
-  { id: 'visual',   label: 'Visuelt' },
-  { id: 'agents',   label: 'Agenter' },
-  { id: 'notes',    label: 'Spillernoter' },
-  { id: 'activity', label: 'Aktivitet' },
-  { id: 'settings', label: 'Indstillinger' },
+  { id: 'board',    labelKey: 'tabs.board' },
+  { id: 'visual',   labelKey: 'tabs.visual' },
+  { id: 'agents',   labelKey: 'tabs.agents' },
+  { id: 'notes',    labelKey: 'tabs.player_notes' },
+  { id: 'activity', labelKey: 'tabs.activity' },
+  { id: 'settings', labelKey: 'tabs.settings' },
 ]
 
 // ─── Notes ───────────────────────────────────────────────────────────────────
@@ -338,7 +362,7 @@ const notesLoading = ref(false)
 const notesByAuthor = computed(() => {
   const grouped = {}
   for (const n of notes.value) {
-    const name = n.author?.display_name ?? 'Ukendt'
+    const name = n.author?.display_name ?? t('notes.unknown_author')
     if (!grouped[name]) grouped[name] = []
     grouped[name].push(n)
   }
@@ -376,19 +400,8 @@ function cardLabel(cardId) {
   return board.cards.find(c => c.id === cardId)?.label ?? ''
 }
 
-const ACTION_LABELS = {
-  card_created: 'oprettede kort',
-  card_revealed: 'revealed kort',
-  card_minimized: 'minimerede kort',
-  card_restored: 'åbnede kort',
-  position_moved: 'flyttede',
-  chain_added: 'tilføjede rød tråd på',
-  chain_removed: 'fjernede rød tråd fra',
-  note_created: 'oprettede en note',
-  note_updated: 'opdaterede en note',
-}
 function actionLabel(action) {
-  return ACTION_LABELS[action] ?? action
+  return t(`activity.actions.${action}`, action)
 }
 
 // ─── Settings ────────────────────────────────────────────────────────────────
@@ -423,27 +436,18 @@ async function saveAutoReveal() {
 
 async function saveName() {
   if (!groupName.value.trim()) return
-  await supabase
-    .from('groups')
-    .update({ name: groupName.value.trim() })
-    .eq('id', groupId)
+  await supabase.from('groups').update({ name: groupName.value.trim() }).eq('id', groupId)
   await session.loadGroup(groupId)
 }
 
 async function saveDescription() {
-  await supabase
-    .from('groups')
-    .update({ description: groupDescription.value })
-    .eq('id', groupId)
+  await supabase.from('groups').update({ description: groupDescription.value }).eq('id', groupId)
 }
 
 async function regenerateInvite() {
   const newCode = Math.random().toString(36).substring(2, 10)
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-  await supabase
-    .from('groups')
-    .update({ invite_code: newCode, invite_expires_at: expiresAt })
-    .eq('id', groupId)
+  await supabase.from('groups').update({ invite_code: newCode, invite_expires_at: expiresAt }).eq('id', groupId)
   await session.loadGroup(groupId)
 }
 
@@ -468,12 +472,14 @@ async function doStopSession() {
   await session.stopSession()
 }
 
-// ─── Formatering ─────────────────────────────────────────────────────────────
+// ─── Formatting ──────────────────────────────────────────────────────────────
 function formatDate(iso) {
-  return new Date(iso).toLocaleString('da-DK', { dateStyle: 'short', timeStyle: 'short' })
+  const lang = i18nLocale.value === 'da' ? 'da-DK' : 'en-GB'
+  return new Date(iso).toLocaleString(lang, { dateStyle: 'short', timeStyle: 'short' })
 }
 function formatTime(iso) {
-  return new Date(iso).toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })
+  const lang = i18nLocale.value === 'da' ? 'da-DK' : 'en-GB'
+  return new Date(iso).toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' })
 }
 
 // ─── Watch tab changes ───────────────────────────────────────────────────────

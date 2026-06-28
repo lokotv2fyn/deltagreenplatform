@@ -1,115 +1,113 @@
 export const CARD_TYPES = {
   briefing: {
-    label: 'Briefing',
+    label: 'Briefing', labelEn: 'Briefing',
     fields: [
-      { key: 'heading', label: 'Overskrift', type: 'text', required: true },
-      { key: 'stamp', label: 'Stempel', type: 'text', placeholder: 'fx TOP SECRET' },
-      { key: 'body', label: 'Brødtekst', type: 'textarea', hint: 'Brug ||tekst|| for sværtet indhold' },
+      { key: 'heading', label: 'Overskrift', labelEn: 'Heading', type: 'text', required: true },
+      { key: 'stamp', label: 'Stempel', labelEn: 'Stamp', type: 'text', placeholder: 'fx TOP SECRET' },
+      { key: 'body', label: 'Brødtekst', labelEn: 'Body text', type: 'textarea', hint: 'Brug ||tekst|| for sværtet indhold' },
     ],
   },
   handout: {
-    label: 'Handout',
+    label: 'Handout', labelEn: 'Handout',
     fields: [
-      { key: 'caseNumber', label: 'Sagsnummer', type: 'text' },
-      { key: 'body', label: 'Indhold', type: 'textarea' },
-      { key: 'imageUrl', label: 'Billed-URL', type: 'text', required: false },
+      { key: 'caseNumber', label: 'Sagsnummer', labelEn: 'Case number', type: 'text' },
+      { key: 'body', label: 'Indhold', labelEn: 'Content', type: 'textarea' },
+      { key: 'imageUrl', label: 'Billed-URL', labelEn: 'Image URL', type: 'text', required: false },
     ],
   },
   npc: {
-    label: 'NPC',
+    label: 'NPC', labelEn: 'NPC',
     fields: [
-      { key: 'name', label: 'Navn', type: 'text', required: true },
-      { key: 'role', label: 'Rolle', type: 'text' },
-      { key: 'affiliations', label: 'Tilknytninger', type: 'text', hint: 'Kommasepareret',
+      { key: 'name', label: 'Navn', labelEn: 'Name', type: 'text', required: true },
+      { key: 'role', label: 'Rolle', labelEn: 'Role', type: 'text' },
+      { key: 'affiliations', label: 'Tilknytninger', labelEn: 'Affiliations', type: 'text', hint: 'Kommasepareret',
         transform: v => v ? v.split(',').map(s => s.trim()).filter(Boolean) : [] },
-      { key: 'notes', label: 'Noter', type: 'textarea' },
-      { key: 'imageUrl', label: 'Billed-URL', type: 'text', required: false },
+      { key: 'notes', label: 'Noter', labelEn: 'Notes', type: 'textarea' },
+      { key: 'imageUrl', label: 'Billed-URL', labelEn: 'Image URL', type: 'text', required: false },
     ],
   },
   bevis: {
-    label: 'Bevis',
+    label: 'Bevis', labelEn: 'Evidence',
     fields: [
-      { key: 'exhibitNumber', label: 'Ekshibit-nr.', type: 'text' },
-      { key: 'foundAt', label: 'Fundet på', type: 'text' },
-      { key: 'description', label: 'Beskrivelse', type: 'textarea' },
-      { key: 'analysis', label: 'Analyse', type: 'textarea', hint: 'Brug ||tekst|| for sværtet indhold', required: false },
-      { key: 'imageUrl', label: 'Billed-URL', type: 'text', required: false },
+      { key: 'exhibitNumber', label: 'Ekshibit-nr.', labelEn: 'Exhibit no.', type: 'text' },
+      { key: 'foundAt', label: 'Fundet på', labelEn: 'Found at', type: 'text' },
+      { key: 'description', label: 'Beskrivelse', labelEn: 'Description', type: 'textarea' },
+      { key: 'analysis', label: 'Analyse', labelEn: 'Analysis', type: 'textarea', hint: 'Brug ||tekst|| for sværtet indhold', required: false },
+      { key: 'imageUrl', label: 'Billed-URL', labelEn: 'Image URL', type: 'text', required: false },
     ],
   },
   unnatural: {
-    label: 'Unnatural',
+    label: 'Unnatural', labelEn: 'Unnatural',
     fields: [
-      { key: 'title', label: 'Titel', type: 'text', required: true },
-      { key: 'sanCost', label: 'SAN-pris', type: 'text', placeholder: 'fx 1/1d6 SAN', required: false },
-      { key: 'body', label: 'Beskrivelse', type: 'textarea', hint: 'Brug ||tekst|| for sværtet indhold' },
+      { key: 'title', label: 'Titel', labelEn: 'Title', type: 'text', required: true },
+      { key: 'sanCost', label: 'SAN-pris', labelEn: 'SAN cost', type: 'text', placeholder: 'fx 1/1d6 SAN', required: false },
+      { key: 'body', label: 'Beskrivelse', labelEn: 'Description', type: 'textarea', hint: 'Brug ||tekst|| for sværtet indhold' },
     ],
   },
   terminal: {
-    label: 'Terminal',
+    label: 'Terminal', labelEn: 'Terminal',
     fields: [
-      { key: 'lines', label: 'Linjer', type: 'textarea', hint: 'Én linje pr. linje',
+      { key: 'lines', label: 'Linjer', labelEn: 'Lines', type: 'textarea', hint: 'Én linje pr. linje',
         transform: v => v ? v.split('\n') : [] },
-      { key: 'showCursor', label: 'Vis cursor', type: 'checkbox', required: false },
+      { key: 'showCursor', label: 'Vis cursor', labelEn: 'Show cursor', type: 'checkbox', required: false },
     ],
   },
   comms: {
-    label: 'Komm.',
+    label: 'Komm.', labelEn: 'Comms',
     fields: [
-      { key: 'sender', label: 'Afsender', type: 'text', required: true },
-      { key: 'message', label: 'Besked', type: 'textarea' },
-      { key: 'time', label: 'Tidspunkt', type: 'text', placeholder: 'fx 02:47', required: false },
+      { key: 'sender', label: 'Afsender', labelEn: 'Sender', type: 'text', required: true },
+      { key: 'message', label: 'Besked', labelEn: 'Message', type: 'textarea' },
+      { key: 'time', label: 'Tidspunkt', labelEn: 'Timestamp', type: 'text', placeholder: 'fx 02:47', required: false },
     ],
   },
 }
 
 export const CARD_TYPE_KEYS = Object.keys(CARD_TYPES)
 
-// Player-venlige korttyper: samme datastruktur som handler-typerne,
-// men med spillerfokuserede labels og forenklede felter.
-// Bruger stadig samme cards.type-værdier i databasen — origin='player' er
-// det eneste der adskiller dem i RLS.
+// Player card types share the same cards.type values in the database.
+// origin='player' is the only distinction in RLS.
 export const PLAYER_CARD_TYPES = {
   bevis: {
-    label: 'Ledetråd',
+    label: 'Ledetråd', labelEn: 'Clue',
     fields: [
-      { key: 'foundAt', label: 'Fundet / oplevet', type: 'text' },
-      { key: 'description', label: 'Beskrivelse', type: 'textarea' },
-      { key: 'analysis', label: 'Agentens vurdering', type: 'textarea', required: false,
+      { key: 'foundAt', label: 'Fundet / oplevet', labelEn: 'Found / experienced', type: 'text' },
+      { key: 'description', label: 'Beskrivelse', labelEn: 'Description', type: 'textarea' },
+      { key: 'analysis', label: 'Agentens vurdering', labelEn: "Agent's assessment", type: 'textarea', required: false,
         hint: 'Brug ||tekst|| for sværtet indhold' },
-      { key: 'imageUrl', label: 'Billed-URL', type: 'text', required: false },
+      { key: 'imageUrl', label: 'Billed-URL', labelEn: 'Image URL', type: 'text', required: false },
     ],
   },
   npc: {
-    label: 'Person',
+    label: 'Person', labelEn: 'Person',
     fields: [
-      { key: 'name', label: 'Navn', type: 'text', required: true },
-      { key: 'role', label: 'Relation / rolle', type: 'text' },
-      { key: 'notes', label: 'Agentens noter', type: 'textarea' },
-      { key: 'imageUrl', label: 'Billed-URL', type: 'text', required: false },
+      { key: 'name', label: 'Navn', labelEn: 'Name', type: 'text', required: true },
+      { key: 'role', label: 'Relation / rolle', labelEn: 'Relation / role', type: 'text' },
+      { key: 'notes', label: 'Agentens noter', labelEn: "Agent's notes", type: 'textarea' },
+      { key: 'imageUrl', label: 'Billed-URL', labelEn: 'Image URL', type: 'text', required: false },
     ],
   },
   comms: {
-    label: 'Besked',
+    label: 'Besked', labelEn: 'Message',
     fields: [
-      { key: 'sender', label: 'Afsender', type: 'text', required: true },
-      { key: 'message', label: 'Indhold', type: 'textarea' },
-      { key: 'time', label: 'Tidspunkt', type: 'text', placeholder: 'fx 02:47', required: false },
+      { key: 'sender', label: 'Afsender', labelEn: 'Sender', type: 'text', required: true },
+      { key: 'message', label: 'Indhold', labelEn: 'Content', type: 'textarea' },
+      { key: 'time', label: 'Tidspunkt', labelEn: 'Timestamp', type: 'text', placeholder: 'fx 02:47', required: false },
     ],
   },
   handout: {
-    label: 'Fund',
+    label: 'Fund', labelEn: 'Find',
     fields: [
-      { key: 'caseNumber', label: 'Reference', type: 'text', required: false },
-      { key: 'body', label: 'Beskrivelse', type: 'textarea' },
-      { key: 'imageUrl', label: 'Billed-URL', type: 'text', required: false },
+      { key: 'caseNumber', label: 'Reference', labelEn: 'Reference', type: 'text', required: false },
+      { key: 'body', label: 'Beskrivelse', labelEn: 'Description', type: 'textarea' },
+      { key: 'imageUrl', label: 'Billed-URL', labelEn: 'Image URL', type: 'text', required: false },
     ],
   },
   unnatural: {
-    label: 'Det Unaturlige',
+    label: 'Det Unaturlige', labelEn: 'The Unnatural',
     fields: [
-      { key: 'title', label: 'Betegnelse', type: 'text', required: true },
-      { key: 'sanCost', label: 'SAN-pris', type: 'text', placeholder: 'fx 1/1d6 SAN', required: false },
-      { key: 'body', label: 'Hvad skete der?', type: 'textarea',
+      { key: 'title', label: 'Betegnelse', labelEn: 'Designation', type: 'text', required: true },
+      { key: 'sanCost', label: 'SAN-pris', labelEn: 'SAN cost', type: 'text', placeholder: 'fx 1/1d6 SAN', required: false },
+      { key: 'body', label: 'Hvad skete der?', labelEn: 'What happened?', type: 'textarea',
         hint: 'Brug ||tekst|| for sværtet indhold' },
     ],
   },

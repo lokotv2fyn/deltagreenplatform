@@ -9,27 +9,29 @@
     <!-- Header -->
     <div class="flex items-center gap-2 px-3 py-2" @click="isExpanded = !isExpanded">
       <span class="text-xs font-mono tracking-[0.15em] uppercase shrink-0" style="color: #506858;">
-        {{ typeDef?.label ?? card.type }}
+        {{ resolvedTypeLabel }}
       </span>
       <span class="font-mono text-sm flex-1 truncate" style="color: #c4c4c4;">{{ card.label }}</span>
 
-      <span v-if="!card.revealed" class="text-xs font-mono tracking-wider shrink-0" style="color: #92400e;">spoiler</span>
+      <span v-if="!card.revealed" class="text-xs font-mono tracking-wider shrink-0" style="color: #92400e;">
+        {{ t('card.spoiler') }}
+      </span>
 
-      <!-- Rød tråd -->
+      <!-- Red thread -->
       <button v-if="canEditChain && inChain" @click.stop="toggleChain"
-              :title="`Fjern fra rød tråd (pos. ${chainPos})`"
+              :title="t('card.remove_chain', { pos: chainPos })"
               class="shrink-0 text-xs font-mono p-0.5 transition-colors chain-active">
         {{ chainPos }}
       </button>
       <button v-else-if="canEditChain" @click.stop="toggleChain"
-              title="Tilføj til rød tråd"
+              :title="t('card.add_chain')"
               class="shrink-0 text-xs font-mono p-0.5 transition-colors chain-inactive">
         #
       </button>
 
       <!-- Reveal toggle (handler) -->
       <button v-if="isHandler" @click.stop="toggleReveal"
-              :title="card.revealed ? 'Skjul for spillere' : 'Reveal for spillere'"
+              :title="card.revealed ? t('card.reveal_hide') : t('card.reveal_show')"
               class="shrink-0 p-0.5 transition-colors icon-btn">
         <svg v-if="card.revealed" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
           <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
@@ -42,7 +44,7 @@
       </button>
 
       <!-- Minimize/restore -->
-      <button @click.stop="toggleMinimized" title="Flyt til/fra bunke"
+      <button @click.stop="toggleMinimized" :title="t('card.move_deck')"
               class="shrink-0 p-0.5 transition-colors icon-btn">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
           <path v-if="!minimized" fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z" clip-rule="evenodd"/>
@@ -63,7 +65,9 @@
     <div v-if="isExpanded" class="px-3 pb-3 pt-1 space-y-2" style="border-top: 1px solid #1a1a1a;">
       <template v-for="field in visibleFields" :key="field.key">
         <div v-if="getValue(field)" class="space-y-0.5">
-          <p class="text-xs font-mono tracking-[0.15em] uppercase" style="color: #506858;">{{ field.label }}</p>
+          <p class="text-xs font-mono tracking-[0.15em] uppercase" style="color: #506858;">
+            {{ resolvedFieldLabel(field) }}
+          </p>
           <p v-if="Array.isArray(getValue(field))" class="text-sm font-mono" style="color: #888;">
             {{ getValue(field).join(', ') }}
           </p>
@@ -74,7 +78,7 @@
             <span v-if="card.data.showCursor" class="animate-pulse">█</span>
           </div>
           <p v-else-if="field.type === 'checkbox'" class="text-sm font-mono" style="color: #888;">
-            {{ getValue(field) ? 'Ja' : 'Nej' }}
+            {{ getValue(field) ? t('card.yes') : t('card.no') }}
           </p>
           <p v-else-if="['body','notes','description','analysis','message'].includes(field.key)"
              v-html="renderRedacted(getValue(field))"
@@ -90,11 +94,11 @@
       <div v-if="canModify" class="flex gap-4 pt-2" style="border-top: 1px solid #1a1a1a;">
         <button @click.stop="showEdit = true"
                 class="text-xs font-mono transition-colors action-btn-text" style="color: #506858;">
-          Rediger
+          {{ t('card.edit') }}
         </button>
         <button @click.stop="confirmDelete"
                 class="text-xs font-mono transition-colors delete-btn" style="color: #506858;">
-          Slet
+          {{ t('card.delete') }}
         </button>
       </div>
     </div>
@@ -113,11 +117,14 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { CARD_TYPES, PLAYER_CARD_TYPES } from '../../config/cardTypes'
 import { renderRedacted } from '../../lib/renderRedacted'
 import { useBoardStore } from '../../stores/board'
 import { useAuthStore } from '../../stores/auth'
 import CreateCardModal from './CreateCardModal.vue'
+
+const { t, locale } = useI18n()
 
 const props = defineProps({
   card: { type: Object, required: true },
@@ -136,6 +143,16 @@ const minimized = computed(() => board.getPos(props.card)?.minimized !== false)
 const inChain = computed(() => board.isInChain(props.card.id))
 const chainPos = computed(() => board.getChainPosition(props.card.id))
 const canModify = computed(() => props.isHandler || props.card.created_by === auth.user?.id)
+
+const resolvedTypeLabel = computed(() => {
+  const def = typeDef.value
+  if (!def) return props.card.type
+  return locale.value === 'en' && def.labelEn ? def.labelEn : def.label
+})
+
+function resolvedFieldLabel(field) {
+  return locale.value === 'en' && field.labelEn ? field.labelEn : field.label
+}
 
 function getValue(field) {
   return props.card.data?.[field.key]
@@ -158,7 +175,7 @@ async function toggleChain() {
 }
 
 async function confirmDelete() {
-  if (!confirm(`Slet "${props.card.label}"? Dette kan ikke fortrydes.`)) return
+  if (!confirm(t('card.delete_confirm', { label: props.card.label }))) return
   await board.deleteCard(props.card.id)
 }
 </script>

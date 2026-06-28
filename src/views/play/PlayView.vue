@@ -6,32 +6,39 @@
       <RouterLink to="/dashboard"
                   class="text-xs font-mono tracking-[0.1em] transition-colors back-link"
                   style="color: #506858;">
-        ← Operationer
+        {{ t('nav.back') }}
       </RouterLink>
       <svg width="10" height="9" viewBox="0 0 10 9" fill="none" class="shrink-0">
         <polygon points="5,0 0,8 10,8" fill="#4a7c59"/>
       </svg>
       <span class="text-xs font-mono tracking-wide" style="color: #c4c4c4;">{{ session.group?.name }}</span>
-      <span class="text-xs font-mono tracking-[0.2em] uppercase" style="color: #1f4a2a;">Agent</span>
+      <span class="text-xs font-mono tracking-[0.2em] uppercase" style="color: #1f4a2a;">{{ t('play.role') }}</span>
 
       <div class="ml-auto flex items-center gap-3">
-        <span v-if="session.isActive" class="text-xs font-mono tracking-wider" style="color: #4a7c59;">● AKTIV</span>
-        <span v-else-if="session.isPaused" class="text-xs font-mono tracking-wider" style="color: #92400e;">◌ PAUSET</span>
-        <span v-else class="text-xs font-mono tracking-wider" style="color: #506858;">Ingen session</span>
+        <span v-if="session.isActive" class="text-xs font-mono tracking-wider" style="color: #4a7c59;">{{ t('session.active') }}</span>
+        <span v-else-if="session.isPaused" class="text-xs font-mono tracking-wider" style="color: #92400e;">{{ t('session.paused') }}</span>
+        <span v-else class="text-xs font-mono tracking-wider" style="color: #506858;">{{ t('session.none') }}</span>
+        <button @click="toggleLang"
+                class="text-xs font-mono transition-colors"
+                style="color: #2a3a2e; padding-left: 0.5rem; border-left: 1px solid #1a1a1a;"
+                onmouseenter="this.style.color='#4a7c59'"
+                onmouseleave="this.style.color='#2a3a2e'">
+          {{ locale === 'da' ? t('lang.en') : t('lang.da') }}
+        </button>
         <span class="text-xs font-mono" style="color: #2a3a2e; padding-left: 0.5rem; border-left: 1px solid #1a1a1a;">v0.513</span>
       </div>
     </header>
 
-    <!-- Pause-banner -->
+    <!-- Pause banner -->
     <div v-if="!session.isActive && session.currentSession"
          class="px-6 py-2 text-xs font-mono text-center"
          style="background: rgba(146,64,14,0.08); border-bottom: 1px solid rgba(146,64,14,0.2); color: #92400e;">
-      Sessionen er pauset af Handler — boardet er midlertidigt låst for ændringer.
+      {{ t('session.paused_banner') }}
     </div>
     <div v-else-if="!session.currentSession"
          class="px-6 py-2 text-xs font-mono text-center"
          style="background: rgba(26,26,26,0.6); border-bottom: 1px solid #1a1a1a; color: #506858;">
-      Ingen aktiv session — Handler har ikke startet sessionen endnu.
+      {{ t('session.no_session_banner') }}
     </div>
 
     <!-- Tabs -->
@@ -42,13 +49,13 @@
               :style="activeTab === tab.id
                 ? 'border-bottom: 1px solid #888; color: #c4c4c4; margin-bottom: -1px;'
                 : 'border-bottom: 1px solid transparent; color: #506858; margin-bottom: -1px;'">
-        {{ tab.label }}
+        {{ t(tab.labelKey) }}
       </button>
     </nav>
 
     <div class="flex-1" :class="activeTab === 'visual' ? 'overflow-hidden' : 'overflow-auto p-6'">
 
-      <!-- ─── VISUELT ─────────────────────────────────────────────── -->
+      <!-- ─── VISUAL ─────────────────────────────────────────────────── -->
       <template v-if="activeTab === 'visual'">
         <VisualBoard
           :group-id="groupId"
@@ -62,24 +69,26 @@
       <!-- ─── BOARD ─────────────────────────────────────────────────── -->
       <template v-else-if="activeTab === 'board'">
         <div class="flex items-center justify-between mb-6">
-          <p class="text-xs font-mono tracking-wider" style="color: #5e8068;">{{ board.cards.length }} kort</p>
+          <p class="text-xs font-mono tracking-wider" style="color: #5e8068;">
+            {{ t('board.card_count', { n: board.cards.length }) }}
+          </p>
           <button v-if="session.isActive" @click="showCreate = true"
                   class="text-xs font-mono tracking-[0.1em] uppercase px-3 py-1.5 transition-colors action-btn"
                   style="border: 1px solid #2a2a2a; color: #5e8068;">
-            + Opret kort
+            {{ t('board.create') }}
           </button>
           <span v-else class="text-xs font-mono" style="color: #506858;">
-            {{ session.isPaused ? 'Pauset' : 'Afventer session' }}
+            {{ session.isPaused ? t('board.paused') : t('board.awaiting') }}
           </span>
         </div>
 
-        <div v-if="board.loading" class="text-xs font-mono" style="color: #506858;">Henter board…</div>
+        <div v-if="board.loading" class="text-xs font-mono" style="color: #506858;">{{ t('board.loading') }}</div>
 
         <div v-else>
           <TheChain :is-handler="false" :can-edit="session.isActive" />
 
           <section v-if="board.onBoard.length" class="mb-8">
-            <p class="text-xs font-mono tracking-[0.2em] uppercase mb-3" style="color: #506858;">På bordet</p>
+            <p class="text-xs font-mono tracking-[0.2em] uppercase mb-3" style="color: #506858;">{{ t('board.on_table') }}</p>
             <div class="space-y-1">
               <CardItem v-for="card in board.onBoard" :key="card.id"
                         :card="card" :is-handler="false" :can-edit-chain="session.isActive" />
@@ -87,7 +96,7 @@
           </section>
 
           <section v-if="board.inDeck.length">
-            <p class="text-xs font-mono tracking-[0.2em] uppercase mb-3" style="color: #506858;">Bunke</p>
+            <p class="text-xs font-mono tracking-[0.2em] uppercase mb-3" style="color: #506858;">{{ t('board.in_deck') }}</p>
             <div class="space-y-1">
               <CardItem v-for="card in board.inDeck" :key="card.id"
                         :card="card" :is-handler="false" :can-edit-chain="session.isActive" />
@@ -95,60 +104,60 @@
           </section>
 
           <div v-if="!board.cards.length" class="text-xs font-mono" style="color: #506858;">
-            Ingen kort er revealed endnu.
+            {{ t('board.empty_player') }}
           </div>
         </div>
       </template>
 
-      <!-- ─── NOTER ─────────────────────────────────────────────────── -->
+      <!-- ─── NOTES ─────────────────────────────────────────────────── -->
       <template v-else-if="activeTab === 'notes'">
         <div class="max-w-xl space-y-4">
           <div class="flex items-center justify-between">
-            <p class="text-xs font-mono tracking-[0.2em] uppercase" style="color: #506858;">Mine noter</p>
+            <p class="text-xs font-mono tracking-[0.2em] uppercase" style="color: #506858;">{{ t('notes.title') }}</p>
             <button v-if="session.isActive || !session.currentSession"
                     @click="openNewNote()"
                     class="text-xs font-mono tracking-[0.1em] uppercase px-3 py-1.5 transition-colors action-btn"
                     style="border: 1px solid #2a2a2a; color: #5e8068;">
-              + Ny note
+              {{ t('notes.new') }}
             </button>
           </div>
 
-          <div v-if="notesLoading" class="text-xs font-mono" style="color: #506858;">Henter noter…</div>
-          <div v-else-if="!notes.length && !editingNote" class="text-xs font-mono" style="color: #506858;">Ingen noter endnu.</div>
+          <div v-if="notesLoading" class="text-xs font-mono" style="color: #506858;">{{ t('notes.loading') }}</div>
+          <div v-else-if="!notes.length && !editingNote" class="text-xs font-mono" style="color: #506858;">{{ t('notes.empty') }}</div>
 
           <div v-if="editingNote !== null"
                class="p-4 space-y-3"
                style="background: #0d0d0d; border: 1px solid #2a2a2a;">
             <div>
               <label class="text-xs font-mono tracking-[0.15em] uppercase block mb-2" style="color: #506858;">
-                Kobl til kort <span style="color: #252525;">(valgfri)</span>
+                {{ t('notes.card_link') }} <span style="color: #252525;">({{ t('dashboard.optional').replace('(','').replace(')','') }})</span>
               </label>
               <select v-model="editingNote.card_id"
                       class="w-full font-mono text-sm px-3 py-1.5 focus:outline-none"
                       style="background: #080808; border: 1px solid #2a2a2a; color: #888;">
-                <option :value="null">— ingen —</option>
+                <option :value="null">{{ t('notes.card_none') }}</option>
                 <option v-for="c in board.cards" :key="c.id" :value="c.id">{{ c.label }}</option>
               </select>
             </div>
-            <textarea v-model="editingNote.body" rows="5" placeholder="Skriv din note…"
+            <textarea v-model="editingNote.body" rows="5" :placeholder="t('notes.body_placeholder')"
                       class="w-full font-mono text-sm px-3 py-2 focus:outline-none resize-y"
                       style="background: #080808; border: 1px solid #2a2a2a; color: #c4c4c4;"
                       autofocus />
             <div class="flex justify-between items-center">
               <button v-if="editingNote.id" @click="deleteNote(editingNote.id)"
                       class="text-xs font-mono transition-colors delete-btn" style="color: #506858;">
-                Slet
+                {{ t('notes.delete') }}
               </button>
               <div v-else />
               <div class="flex gap-4">
                 <button @click="editingNote = null"
                         class="text-xs font-mono transition-colors" style="color: #506858;">
-                  Annuller
+                  {{ t('notes.cancel') }}
                 </button>
                 <button @click="saveNote" :disabled="!editingNote.body.trim() || savingNote"
                         class="text-xs font-mono tracking-[0.1em] uppercase px-4 py-1.5 transition-colors action-btn disabled:opacity-30"
                         style="border: 1px solid #4a7c59; color: #4a7c59;">
-                  {{ savingNote ? 'Gemmer…' : 'Gem' }}
+                  {{ savingNote ? t('notes.saving') : t('notes.save') }}
                 </button>
               </div>
             </div>
@@ -165,38 +174,38 @@
               </div>
               <button v-if="session.isActive" @click="openEditNote(note)"
                       class="text-xs font-mono transition-colors action-btn-text" style="color: #506858;">
-                Rediger
+                {{ t('notes.edit') }}
               </button>
             </div>
           </div>
         </div>
       </template>
 
-      <!-- ─── KARAKTER ─────────────────────────────────────────── -->
+      <!-- ─── CHARACTER ─────────────────────────────────────────── -->
       <template v-else-if="activeTab === 'character'">
-        <div v-if="character.loading" class="text-xs font-mono" style="color: #506858;">Henter karakterark…</div>
+        <div v-if="character.loading" class="text-xs font-mono" style="color: #506858;">
+          {{ t('board.loading') }}
+        </div>
         <CharacterSheet v-else :group-id="groupId" :initial-data="character.mySheet?.data ?? null" />
       </template>
 
-      <!-- ─── PROFIL ────────────────────────────────────────────── -->
+      <!-- ─── PROFILE ────────────────────────────────────────────── -->
       <template v-else-if="activeTab === 'profil'">
         <div class="max-w-sm space-y-6">
           <div>
-            <p class="text-xs font-mono tracking-[0.2em] uppercase mb-4" style="color: #506858;">Agent-identitet</p>
+            <p class="text-xs font-mono tracking-[0.2em] uppercase mb-4" style="color: #506858;">{{ t('profile.title') }}</p>
             <label class="text-xs font-mono tracking-[0.15em] uppercase block mb-2" style="color: #506858;">
-              Kaldenavn
+              {{ t('profile.name_label') }}
             </label>
             <input
               v-model="displayName"
               type="text"
-              placeholder="Hvad skal de andre kalde dig?"
+              :placeholder="t('profile.name_placeholder')"
               class="w-full font-mono text-sm px-3 py-2 focus:outline-none"
               style="background: #0d0d0d; border: 1px solid #2a2a2a; color: #c4c4c4;"
               @keyup.enter="saveDisplayName"
             />
-            <p class="text-xs font-mono mt-2" style="color: #333;">
-              Vises for Handler og andre spillere.
-            </p>
+            <p class="text-xs font-mono mt-2" style="color: #333;">{{ t('profile.name_hint') }}</p>
           </div>
           <div class="flex items-center gap-4">
             <button
@@ -205,9 +214,9 @@
               class="text-xs font-mono tracking-[0.15em] uppercase px-4 py-2 transition-colors disabled:opacity-30"
               style="border: 1px solid #4a7c59; color: #4a7c59;"
             >
-              {{ savingName ? 'Gemmer…' : 'Gem' }}
+              {{ savingName ? t('profile.saving') : t('profile.save') }}
             </button>
-            <span v-if="nameSaved" class="text-xs font-mono" style="color: #4a7c59;">Gemt.</span>
+            <span v-if="nameSaved" class="text-xs font-mono" style="color: #4a7c59;">{{ t('profile.saved') }}</span>
           </div>
         </div>
       </template>
@@ -234,6 +243,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/auth'
 import { useSessionStore } from '../../stores/session'
@@ -245,6 +255,10 @@ import RevealInterrupt from '../../components/RevealInterrupt.vue'
 import CharacterSheet from '../../components/CharacterSheet.vue'
 import { useCharacterStore } from '../../stores/character'
 import VisualBoard from '../../components/board/VisualBoard.vue'
+import { useLang } from '../../composables/useLang'
+
+const { t, locale: i18nLocale } = useI18n()
+const { locale, toggleLang } = useLang()
 
 const route = useRoute()
 const groupId = route.params.groupId
@@ -274,11 +288,11 @@ watch(() => board.lastRevealedId, (cardId) => {
 })
 
 const tabs = [
-  { id: 'board',     label: 'Board' },
-  { id: 'visual',    label: 'Visuelt' },
-  { id: 'notes',     label: 'Mine noter' },
-  { id: 'character', label: 'Karakter' },
-  { id: 'profil',    label: 'Profil' },
+  { id: 'board',     labelKey: 'tabs.board' },
+  { id: 'visual',    labelKey: 'tabs.visual' },
+  { id: 'notes',     labelKey: 'tabs.notes' },
+  { id: 'character', labelKey: 'tabs.character' },
+  { id: 'profil',    labelKey: 'tabs.profile' },
 ]
 
 // ─── Notes ───────────────────────────────────────────────────────────────────
@@ -331,13 +345,7 @@ async function deleteNote(noteId) {
   await loadNotes()
 }
 
-watch(activeTab, (tab) => {
-  if (tab === 'notes') loadNotes()
-  if (tab === 'character') character.loadMySheet(groupId)
-  if (tab === 'profil') displayName.value = auth.profile?.display_name ?? ''
-})
-
-// ─── Profil ──────────────────────────────────────────────────────────────────
+// ─── Profile ──────────────────────────────────────────────────────────────────
 const displayName = ref(auth.profile?.display_name ?? '')
 const savingName = ref(false)
 const nameSaved = ref(false)
@@ -363,11 +371,19 @@ async function loadSettings() {
   if (data) autoReveal.value = data.auto_reveal_player_cards
 }
 
+// ─── Formatting ──────────────────────────────────────────────────────────────
 function formatDate(iso) {
-  return new Date(iso).toLocaleString('da-DK', { dateStyle: 'short', timeStyle: 'short' })
+  const lang = i18nLocale.value === 'da' ? 'da-DK' : 'en-GB'
+  return new Date(iso).toLocaleString(lang, { dateStyle: 'short', timeStyle: 'short' })
 }
 
 // ─── Lifecycle ───────────────────────────────────────────────────────────────
+watch(activeTab, (tab) => {
+  if (tab === 'notes') loadNotes()
+  if (tab === 'character') character.loadMySheet(groupId)
+  if (tab === 'profil') displayName.value = auth.profile?.display_name ?? ''
+})
+
 onMounted(async () => {
   await session.loadGroup(groupId)
   await board.loadBoard(groupId)

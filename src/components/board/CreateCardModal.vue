@@ -7,18 +7,20 @@
       <!-- Modal header -->
       <div class="px-6 py-4" style="border-bottom: 1px solid #1a1a1a;">
         <p class="text-xs font-mono tracking-[0.25em] uppercase mb-1" style="color: #506858;">
-          {{ editMode ? 'Rediger fil' : 'Ny fil' }}
+          {{ editMode ? t('modal.edit_header') : t('modal.new_header') }}
         </p>
         <h2 class="text-sm font-mono tracking-wide" style="color: #c4c4c4;">
-          {{ editMode ? 'Rediger kort' : 'Opret kort' }}
+          {{ editMode ? t('modal.edit_title') : t('modal.new_title') }}
         </h2>
       </div>
 
       <div class="px-6 py-5 space-y-5">
 
-        <!-- Type-vælger -->
+        <!-- Type selector -->
         <div v-if="!editMode">
-          <label class="text-xs font-mono tracking-[0.15em] uppercase block mb-2" style="color: #506858;">Type</label>
+          <label class="text-xs font-mono tracking-[0.15em] uppercase block mb-2" style="color: #506858;">
+            {{ t('modal.type_label') }}
+          </label>
           <div class="flex flex-wrap gap-1.5">
             <button v-for="(def, key) in availableTypes" :key="key"
                     @click="selectType(key)"
@@ -26,32 +28,32 @@
                     :style="form.type === key
                       ? 'border: 1px solid #888; color: #c4c4c4; background: #1a1a1a;'
                       : 'border: 1px solid #2a2a2a; color: #555; background: transparent;'">
-              {{ def.label }}
+              {{ resolvedTypeLabel(def) }}
             </button>
           </div>
         </div>
         <div v-else>
           <span class="text-xs font-mono tracking-[0.15em] uppercase" style="color: #506858;">
-            {{ availableTypes[form.type]?.label ?? form.type }}
+            {{ resolvedTypeLabel(availableTypes[form.type]) ?? form.type }}
           </span>
         </div>
 
         <!-- Label -->
         <div>
           <label class="text-xs font-mono tracking-[0.15em] uppercase block mb-2" style="color: #506858;">
-            Titel / label
+            {{ t('modal.card_label') }}
           </label>
-          <input v-model="form.label" type="text" placeholder="Vises på kortets forside"
+          <input v-model="form.label" type="text" :placeholder="t('modal.card_label_placeholder')"
                  class="w-full font-mono text-sm px-3 py-2 focus:outline-none"
                  style="background: #080808; border: 1px solid #2a2a2a; color: #c4c4c4;" />
         </div>
 
-        <!-- Dynamiske felter -->
+        <!-- Dynamic fields -->
         <template v-if="form.type">
           <div v-for="field in currentFields" :key="field.key" class="space-y-1.5">
             <label class="text-xs font-mono tracking-[0.15em] uppercase flex items-center gap-2" style="color: #506858;">
-              {{ field.label }}
-              <span v-if="field.required === false" style="color: #3a5040;">(valgfri)</span>
+              {{ resolvedFieldLabel(field) }}
+              <span v-if="field.required === false" style="color: #3a5040;">{{ t('modal.optional') }}</span>
             </label>
             <p v-if="field.hint" class="text-xs font-mono" style="color: #2a2a2a;">{{ field.hint }}</p>
 
@@ -68,7 +70,7 @@
                       style="background: #080808; border: 1px solid #2a2a2a; color: #c4c4c4;" />
             <label v-else-if="field.type === 'checkbox'" class="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" v-model="fieldValues[field.key]" class="accent-neutral-600" />
-              <span class="text-sm font-mono" style="color: #888;">{{ field.label }}</span>
+              <span class="text-sm font-mono" style="color: #888;">{{ resolvedFieldLabel(field) }}</span>
             </label>
           </div>
         </template>
@@ -76,12 +78,10 @@
         <!-- Reveal (handler only) -->
         <label v-if="!playerMode" class="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" v-model="form.revealed" class="accent-neutral-600" />
-          <span class="text-xs font-mono tracking-wider" style="color: #888;">Reveal til spillere</span>
+          <span class="text-xs font-mono tracking-wider" style="color: #888;">{{ t('modal.reveal_toggle') }}</span>
         </label>
         <p v-else-if="!editMode" class="text-xs font-mono" style="color: #506858;">
-          {{ autoRevealEnabled
-            ? 'Kortet vises for alle med det samme (auto-reveal er slået til)'
-            : 'Kortet skal godkendes af Handler før det vises for andre' }}
+          {{ autoRevealEnabled ? t('modal.auto_reveal_on') : t('modal.auto_reveal_off') }}
         </p>
 
         <p v-if="error" class="text-xs font-mono" style="color: #dc2626;">{{ error }}</p>
@@ -91,12 +91,12 @@
         <button @click="$emit('close')"
                 class="text-xs font-mono tracking-[0.1em] uppercase transition-colors"
                 style="color: #506858;">
-          Annuller
+          {{ t('modal.cancel') }}
         </button>
         <button @click="submit" :disabled="!canSubmit || saving"
                 class="text-xs font-mono tracking-[0.1em] uppercase px-4 py-2 transition-colors submit-btn disabled:opacity-30"
                 style="border: 1px solid #4a7c59; color: #4a7c59;">
-          {{ saving ? 'Gemmer…' : editMode ? 'Gem ændringer' : 'Opret kort' }}
+          {{ saving ? t('modal.saving') : editMode ? t('modal.save_changes') : t('modal.create') }}
         </button>
       </div>
 
@@ -106,8 +106,11 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { CARD_TYPES, PLAYER_CARD_TYPES } from '../../config/cardTypes'
 import { useBoardStore } from '../../stores/board'
+
+const { t, locale } = useI18n()
 
 const props = defineProps({
   groupId: { type: String, required: true },
@@ -140,6 +143,15 @@ const canSubmit = computed(() =>
 
 const saving = ref(false)
 const error = ref('')
+
+function resolvedTypeLabel(def) {
+  if (!def) return ''
+  return locale.value === 'en' && def.labelEn ? def.labelEn : def.label
+}
+
+function resolvedFieldLabel(field) {
+  return locale.value === 'en' && field.labelEn ? field.labelEn : field.label
+}
 
 function selectType(key) {
   form.value.type = key

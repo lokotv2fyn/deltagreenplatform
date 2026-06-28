@@ -1,12 +1,11 @@
 <template>
   <div class="relative flex h-screen items-center justify-center"
        style="background-image: url('/bg.png'); background-size: cover; background-position: center;">
-    <!-- Mørkt overlay så tekst og form er læsbar -->
     <div class="absolute inset-0 bg-black/60" />
 
     <div class="relative w-full max-w-sm space-y-6 px-6">
       <h1 class="text-5xl tracking-wide" style="font-family: 'Jersey 10', sans-serif; color: #3d6b4a;">
-        Find den perfekte nat i operaen
+        {{ t('login.title') }}
       </h1>
 
       <form v-if="!sent" @submit.prevent="sendMagicLink" class="space-y-4">
@@ -14,7 +13,7 @@
           v-model="email"
           type="email"
           required
-          placeholder="Din e-mailadresse"
+          :placeholder="t('login.email_placeholder')"
           class="w-full rounded bg-neutral-800 border border-neutral-700 px-4 py-2 text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-neutral-400"
         />
         <button
@@ -22,14 +21,25 @@
           :disabled="loading"
           class="w-full rounded bg-neutral-700 hover:bg-neutral-600 disabled:opacity-50 px-4 py-2 text-neutral-100 transition-colors"
         >
-          {{ loading ? 'Sender…' : 'Send login-link' }}
+          {{ loading ? t('login.sending') : t('login.submit') }}
         </button>
         <p v-if="error" class="text-sm text-red-400">{{ error }}</p>
       </form>
 
       <div v-else class="text-neutral-300 text-sm leading-relaxed">
-        <p>Tjek din indbakke — vi har sendt et login-link til <strong>{{ email }}</strong>.</p>
+        <p>{{ t('login.sent') }} <strong>{{ email }}</strong>.</p>
       </div>
+    </div>
+
+    <!-- Language toggle -->
+    <div class="absolute bottom-4 left-5">
+      <button @click="toggleLang"
+              class="text-xs font-mono transition-colors"
+              style="color: #2a3a2e;"
+              onmouseenter="this.style.color='#4a7c59'"
+              onmouseleave="this.style.color='#2a3a2e'">
+        {{ locale === 'da' ? t('lang.en') : t('lang.da') }}
+      </button>
     </div>
 
     <!-- Version -->
@@ -39,11 +49,15 @@
   </div>
 </template>
 
-
 <script setup>
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { supabase } from '../lib/supabase'
+import { useLang } from '../composables/useLang'
+
+const { t } = useI18n()
+const { locale, toggleLang } = useLang()
 
 const route = useRoute()
 const email = ref('')

@@ -7,11 +7,11 @@
       <div class="sms-phone">
         <div class="sms-header">
           <span class="sms-icon">✉</span>
-          <span>NYT OPKALD / BESKED</span>
+          <span>{{ t('reveal.sms_header') }}</span>
           <button @click="$emit('close')" class="sms-close">×</button>
         </div>
         <div class="sms-screen">
-          <p class="sms-from">Fra: {{ card.data?.sender ?? 'Ukendt' }}</p>
+          <p class="sms-from">{{ t('reveal.sms_from', { sender: card.data?.sender ?? t('reveal.sms_unknown') }) }}</p>
           <div class="sms-divider" />
           <p class="sms-body">{{ card.data?.message ?? card.label }}</p>
           <p v-if="card.data?.time" class="sms-time">{{ card.data.time }}</p>
@@ -22,7 +22,7 @@
       </div>
     </div>
 
-    <!-- Generisk reveal -->
+    <!-- Generic reveal -->
     <div v-else
          style="position:fixed;top:0;right:0;bottom:0;left:0;z-index:9999;background:rgba(0,0,0,0.82);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:1rem;"
          @click.self="$emit('close')">
@@ -41,7 +41,7 @@
         <div class="reveal-fields">
           <template v-for="field in visibleFields" :key="field.key">
             <div v-if="fieldVal(field)" class="reveal-field">
-              <p class="reveal-field-label">{{ field.label }}</p>
+              <p class="reveal-field-label">{{ resolvedFieldLabel(field) }}</p>
               <p v-if="Array.isArray(fieldVal(field))" class="reveal-field-value">
                 {{ fieldVal(field).join(', ') }}
               </p>
@@ -57,7 +57,7 @@
           </template>
         </div>
 
-        <button @click="$emit('close')" class="reveal-dismiss">Bekræft modtagelse</button>
+        <button @click="$emit('close')" class="reveal-dismiss">{{ t('reveal.dismiss') }}</button>
       </div>
     </div>
   </Teleport>
@@ -65,8 +65,11 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { CARD_TYPES, PLAYER_CARD_TYPES } from '../config/cardTypes'
 import { renderRedacted } from '../lib/renderRedacted'
+
+const { t, locale } = useI18n()
 
 const props = defineProps({
   card: { type: Object, required: true },
@@ -75,7 +78,11 @@ defineEmits(['close'])
 
 const isSms     = computed(() => props.card.type === 'comms')
 const typeDef   = computed(() => CARD_TYPES[props.card.type] ?? PLAYER_CARD_TYPES[props.card.type])
-const typeLabel = computed(() => typeDef.value?.label ?? props.card.type)
+const typeLabel = computed(() => {
+  const def = typeDef.value
+  if (!def) return props.card.type
+  return locale.value === 'en' && def.labelEn ? def.labelEn : def.label
+})
 const imageUrl  = computed(() => props.card.data?.imageUrl ?? null)
 
 const visibleFields = computed(() =>
@@ -84,6 +91,10 @@ const visibleFields = computed(() =>
 
 function fieldVal(field) {
   return props.card.data?.[field.key]
+}
+
+function resolvedFieldLabel(field) {
+  return locale.value === 'en' && field.labelEn ? field.labelEn : field.label
 }
 </script>
 
@@ -169,7 +180,7 @@ function fieldVal(field) {
 }
 .sms-ok:hover { background: #2a2a2a; }
 
-/* ── GENERISK REVEAL ──────────────────────────────────── */
+/* ── GENERIC REVEAL ──────────────────────────────────── */
 .reveal-card {
   background: #0e0e0e;
   border: 1px solid #333;
@@ -220,9 +231,7 @@ function fieldVal(field) {
   color: #e5e5e5;
   line-height: 1.3;
 }
-.reveal-image-wrap {
-  padding: 0 16px 10px;
-}
+.reveal-image-wrap { padding: 0 16px 10px; }
 .reveal-image {
   width: 100%;
   max-height: 220px;

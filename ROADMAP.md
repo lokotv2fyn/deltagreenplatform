@@ -53,7 +53,8 @@
 - Presence: live musemarkører på visuelt canvas
 - Spiller-tokens på canvas
 - Rød tråd: mange-til-mange forbindelser, drag-and-drop direkte på canvas
-- Arkivér operation / start ny
+- Arkivér operation / start ny (større logik, der skal mappes)
 - Interaktiv terminal-korttype
 - Landingpage: in-character kodeord
 - Mobil-optimering (read-only board, ingen drag)
+- Demo version for showcasing in open source and subreddits

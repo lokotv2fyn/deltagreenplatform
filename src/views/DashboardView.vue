@@ -5,27 +5,36 @@
     <header class="px-8 py-5 flex items-center justify-between" style="border-bottom: 1px solid #1a1a1a;">
       <div>
         <p class="text-xs font-mono tracking-[0.3em] uppercase mb-1" style="color: #506858;">
-          Program // Klassificeret adgang
+          {{ t('dashboard.classified') }}
         </p>
         <div class="flex items-center gap-3">
           <svg width="14" height="12" viewBox="0 0 14 12" fill="none">
             <polygon points="7,0 0,11 14,11" fill="#4a7c59"/>
           </svg>
           <span class="text-2xl tracking-widest text-neutral-100 uppercase" style="font-family: 'Jersey 10', sans-serif;">
-            Delta Green
+            {{ t('dashboard.title') }}
           </span>
           <span class="text-xs font-mono" style="color: #2a3a2e; margin-left: 0.5rem; align-self: flex-end; padding-bottom: 2px;">v0.513</span>
         </div>
       </div>
-      <button
-        @click="auth.signOut()"
-        class="text-xs font-mono tracking-[0.15em] uppercase transition-colors"
-        style="color: #506858;"
-        onmouseenter="this.style.color='#dc2626'"
-        onmouseleave="this.style.color='#506858'"
-      >
-        Afbryd forbindelse
-      </button>
+      <div class="flex items-center gap-4">
+        <button @click="toggleLang"
+                class="text-xs font-mono transition-colors"
+                style="color: #2a3a2e;"
+                onmouseenter="this.style.color='#4a7c59'"
+                onmouseleave="this.style.color='#2a3a2e'">
+          {{ locale === 'da' ? t('lang.en') : t('lang.da') }}
+        </button>
+        <button
+          @click="auth.signOut()"
+          class="text-xs font-mono tracking-[0.15em] uppercase transition-colors"
+          style="color: #506858;"
+          onmouseenter="this.style.color='#dc2626'"
+          onmouseleave="this.style.color='#506858'"
+        >
+          {{ t('nav.disconnect') }}
+        </button>
+      </div>
     </header>
 
     <main class="max-w-2xl mx-auto px-8 py-12">
@@ -34,11 +43,11 @@
       <div class="flex items-end justify-between mb-8" style="border-bottom: 1px solid #141414; padding-bottom: 1rem;">
         <div>
           <p class="text-xs font-mono tracking-[0.25em] uppercase mb-2" style="color: #506858;">
-            Aktive operationer
+            {{ t('dashboard.operations') }}
           </p>
           <p class="text-xs font-mono" style="color: #5e8068;">
-            <span v-if="groups.loading">Henter filer…</span>
-            <span v-else>{{ groups.memberships.length }} fil{{ groups.memberships.length !== 1 ? 'er' : '' }} tilgængelig{{ groups.memberships.length !== 1 ? 'e' : '' }}</span>
+            <span v-if="groups.loading">{{ t('dashboard.loading') }}</span>
+            <span v-else>{{ t('dashboard.file_count', { n: groups.memberships.length }, groups.memberships.length) }}</span>
           </p>
         </div>
         <button
@@ -49,15 +58,14 @@
           onmouseenter="this.style.borderColor='#5e8068'; this.style.color='#ccc';"
           onmouseleave="this.style.borderColor='#2a2a2a'; this.style.color='#5e8068';"
         >
-          + Ny operation
+          {{ t('dashboard.new_op') }}
         </button>
       </div>
 
       <!-- Empty state -->
-      <div v-if="!groups.loading && groups.memberships.length === 0"
-           class="py-8 text-center">
+      <div v-if="!groups.loading && groups.memberships.length === 0" class="py-8 text-center">
         <p class="text-xs font-mono tracking-widest uppercase" style="color: #333;">
-          Ingen operationer tilknyttet denne agent
+          {{ t('dashboard.empty') }}
         </p>
       </div>
 
@@ -72,22 +80,15 @@
         >
           <div class="flex items-start justify-between gap-6">
             <div class="flex-1 min-w-0">
-              <!-- Role stamp -->
               <p class="text-xs font-mono tracking-[0.2em] uppercase mb-2"
                  :style="m.role === 'handler' ? 'color: #92400e;' : 'color: #1f4a2a;'">
-                {{ m.role === 'handler' ? '▸ Handler' : '▸ Agent' }}
+                {{ m.role === 'handler' ? t('dashboard.role_handler') : t('dashboard.role_agent') }}
               </p>
-              <!-- Name -->
-              <p class="font-mono text-sm tracking-wide" style="color: #c4c4c4;">
-                {{ m.group.name }}
-              </p>
-              <!-- Description -->
+              <p class="font-mono text-sm tracking-wide" style="color: #c4c4c4;">{{ m.group.name }}</p>
               <p v-if="m.group.description" class="text-xs font-mono mt-1.5" style="color: #404040;">
                 {{ m.group.description }}
               </p>
             </div>
-
-            <!-- Access indicator -->
             <div class="shrink-0 text-right mt-0.5">
               <span
                 class="text-xs font-mono tracking-widest uppercase px-2 py-0.5"
@@ -95,7 +96,7 @@
                   ? 'border: 1px solid #92400e; color: #d97706; background: rgba(146,64,14,0.1);'
                   : 'border: 1px solid #1f3a28; color: #4a7c59; background: rgba(31,58,40,0.2);'"
               >
-                {{ m.role === 'handler' ? 'Handler' : 'Agent' }}
+                {{ m.role === 'handler' ? t('dashboard.badge_handler') : t('dashboard.badge_agent') }}
               </span>
             </div>
           </div>
@@ -104,7 +105,7 @@
 
     </main>
 
-    <!-- Modal: Opret operation -->
+    <!-- Modal: Create operation -->
     <div
       v-if="showCreate"
       class="fixed inset-0 flex items-center justify-center p-4 z-50"
@@ -112,57 +113,52 @@
       @click.self="showCreate = false"
     >
       <div class="w-full max-w-md" style="background: #0d0d0d; border: 1px solid #2a2a2a;">
-
-        <!-- Modal header -->
         <div class="px-6 py-4" style="border-bottom: 1px solid #1a1a1a;">
-          <p class="text-xs font-mono tracking-[0.25em] uppercase mb-1" style="color: #506858;">Ny operation</p>
-          <h2 class="text-sm font-mono tracking-wide text-neutral-300">Opret operationsfil</h2>
+          <p class="text-xs font-mono tracking-[0.25em] uppercase mb-1" style="color: #506858;">
+            {{ t('dashboard.modal_title') }}
+          </p>
+          <h2 class="text-sm font-mono tracking-wide text-neutral-300">{{ t('dashboard.modal_subtitle') }}</h2>
         </div>
 
         <div class="px-6 py-5 space-y-4">
           <div>
             <label class="text-xs font-mono tracking-[0.15em] uppercase block mb-2" style="color: #506858;">
-              Operationsnavn
+              {{ t('dashboard.op_name') }}
             </label>
             <input
               v-model="form.name"
               type="text"
-              placeholder="fx Delta Green — Roskilde"
+              :placeholder="t('dashboard.op_name_placeholder')"
               class="w-full font-mono text-sm px-3 py-2 focus:outline-none"
               style="background: #080808; border: 1px solid #2a2a2a; color: #c4c4c4;"
             />
           </div>
           <div>
             <label class="text-xs font-mono tracking-[0.15em] uppercase block mb-2" style="color: #506858;">
-              Beskrivelse <span style="color: #3a5040;">(valgfri)</span>
+              {{ t('dashboard.op_desc') }} <span style="color: #3a5040;">{{ t('dashboard.optional') }}</span>
             </label>
             <textarea
               v-model="form.description"
               rows="2"
-              placeholder="Vises for agenter"
+              :placeholder="t('dashboard.desc_placeholder')"
               class="w-full font-mono text-sm px-3 py-2 focus:outline-none resize-none"
               style="background: #080808; border: 1px solid #2a2a2a; color: #c4c4c4;"
             />
           </div>
-
           <p v-if="createError" class="text-xs font-mono" style="color: #dc2626;">{{ createError }}</p>
         </div>
 
         <div class="px-6 py-4 flex justify-end gap-4" style="border-top: 1px solid #1a1a1a;">
-          <button
-            @click="showCreate = false"
-            class="text-xs font-mono tracking-[0.15em] uppercase transition-colors"
-            style="color: #506858;"
-          >
-            Annuller
+          <button @click="showCreate = false"
+                  class="text-xs font-mono tracking-[0.15em] uppercase transition-colors"
+                  style="color: #506858;">
+            {{ t('dashboard.cancel') }}
           </button>
-          <button
-            @click="submitCreate"
-            :disabled="!form.name.trim() || creating"
-            class="text-xs font-mono tracking-[0.15em] uppercase px-4 py-2 transition-colors disabled:opacity-30"
-            style="border: 1px solid #4a7c59; color: #4a7c59;"
-          >
-            {{ creating ? 'Opretter…' : 'Bekræft' }}
+          <button @click="submitCreate"
+                  :disabled="!form.name.trim() || creating"
+                  class="text-xs font-mono tracking-[0.15em] uppercase px-4 py-2 transition-colors disabled:opacity-30"
+                  style="border: 1px solid #4a7c59; color: #4a7c59;">
+            {{ creating ? t('dashboard.creating') : t('dashboard.confirm') }}
           </button>
         </div>
       </div>
@@ -174,8 +170,13 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
 import { useGroupsStore } from '../stores/groups'
+import { useLang } from '../composables/useLang'
+
+const { t } = useI18n()
+const { locale, toggleLang } = useLang()
 
 const router = useRouter()
 const auth = useAuthStore()

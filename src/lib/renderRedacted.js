@@ -1,5 +1,5 @@
-// Renders ||tekst|| som sværtet indhold der afsløres ved hover.
-// HTML-escape sker før regex-erstatning så brugertekst aldrig indsættes rå.
+// Renders ||text|| as redacted content revealed on hover.
+// HTML-escape happens before regex replacement so user content is never injected raw.
 export function renderRedacted(text) {
   if (!text) return ''
   const escaped = text
