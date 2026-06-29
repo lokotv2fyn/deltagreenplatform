@@ -17,8 +17,8 @@ export const useBoardStore = defineStore('board', () => {
   let _groupId = null
   let channel = null
 
-  const onBoard = computed(() => cards.value.filter(c => getPos(c)?.minimized === false))
-  const inDeck  = computed(() => cards.value.filter(c => getPos(c)?.minimized !== false))
+  const onBoard = computed(() => cards.value.filter(c => c.revealed))
+  const inDeck  = computed(() => cards.value.filter(c => !c.revealed))
 
   const chain = computed(() =>
     [...chainLinks.value]

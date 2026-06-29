@@ -43,15 +43,6 @@
         </svg>
       </button>
 
-      <!-- Minimize/restore -->
-      <button @click.stop="toggleMinimized" :title="t('card.move_deck')"
-              class="shrink-0 p-0.5 transition-colors icon-btn">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-          <path v-if="!minimized" fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z" clip-rule="evenodd"/>
-          <path v-else fill-rule="evenodd" d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
-        </svg>
-      </button>
-
       <!-- Expand chevron -->
       <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0 transition-transform"
            :class="isExpanded ? 'rotate-180' : ''"
@@ -139,7 +130,6 @@ const showEdit = ref(false)
 
 const typeDef = computed(() => CARD_TYPES[props.card.type] ?? PLAYER_CARD_TYPES[props.card.type])
 const visibleFields = computed(() => typeDef.value?.fields ?? [])
-const minimized = computed(() => board.getPos(props.card)?.minimized !== false)
 const inChain = computed(() => board.isInChain(props.card.id))
 const chainPos = computed(() => board.getChainPosition(props.card.id))
 const canModify = computed(() => props.isHandler || props.card.created_by === auth.user?.id)
@@ -160,10 +150,6 @@ function getValue(field) {
 
 async function toggleReveal() {
   await board.setRevealed(props.card.id, !props.card.revealed)
-}
-
-async function toggleMinimized() {
-  await board.setMinimized(props.card.id, !minimized.value)
 }
 
 async function toggleChain() {
