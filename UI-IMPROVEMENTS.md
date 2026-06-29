@@ -1,8 +1,8 @@
 # UI improvements — backlog
 
 ## Visual board
-- Add card to red thread directly from the visual tab (not only from the board tab)
-- Red thread: drag-and-drop connections on the canvas — many-to-many instead of a linear chain
+- ~~Add card to red thread directly from the visual tab (not only from the board tab)~~ ✓ done (sidebar toggleChain + canvas drag-and-drop)
+- ~~Red thread: drag-and-drop connections on the canvas~~ ✓ done — many-to-many instead of a linear chain (NOT DONE)
 - Hover tooltip on cards: expand content on hover as an alternative to the sidebar click
 - Possibility to right click and drag around board position
 
@@ -16,7 +16,7 @@
 - Terminal card interactivity: players can type commands into the terminal card type; handler defines valid commands and responses
 
 ## Technical debt
-- Reveal interrupt (see REVEAL_PROBLEM.md) — real-time delivery of handler reveals to players is not yet solved
+- ~~Reveal interrupt (see REVEAL_PROBLEM.md) — real-time delivery of handler reveals to players is not yet solved~~ ✓ done
 
 ## Small stuff
 - Green icon in the browser title bar — favicon

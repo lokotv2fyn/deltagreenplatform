@@ -11,13 +11,17 @@
 ### Board
 - Cards: create, edit, delete — handler and player with separate permissions
 - Reveal: handler can reveal/hide cards for players
+- **Reveal interrupt: full-screen overlay for players when handler reveals a card** ✓
 - Red thread: add/remove/reorder cards in the chain; visibility can be hidden by handler
+- **Red thread: drag-and-drop connections directly on the visual canvas** ✓
+- **Red thread: lines anchored to actual card centers (ResizeObserver)** ✓
 - Realtime sync: all changes propagate live to all clients (migration 006 + 007)
 - Visual canvas: drag-and-drop positioning, sidebar with card details
 
 ### Session
 - Start / stop / pause session
 - Board is group-scoped and survives a session stop
+- **Archive operation: move board to "Ended operations" and start fresh** ✓
 
 ### Player side
 - Board tab: revealed cards + red thread
@@ -40,19 +44,14 @@
 
 ---
 
-## Next priorities
-
-1. **Reveal interrupt** — handler reveal should interrupt the player with a full-screen overlay (see REVEAL_PROBLEM.md)
-
----
-
 ## Future
 
 - Presence: live mouse cursors on the visual canvas
 - Player tokens on the canvas
-- Red thread: many-to-many connections, drag-and-drop directly on the canvas
-- Archive operation / start new (larger logic to map out)
+- Red thread: many-to-many connections (currently linear chain)
 - Interactive terminal card type
+- Character archival: retire / hospitalised / dead — archived sheet stamped with reason, accordion in archives tab
+- Favicon: green icon in browser title bar
 - Landing page: in-character passphrase
 - Mobile optimisation (read-only board, no drag)
 - Demo version for showcasing in open source and subreddits
