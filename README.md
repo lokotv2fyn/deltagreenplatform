@@ -47,3 +47,9 @@ See `PLATFORM-ARCHITECTURE.md` for the full data model, RLS policies, and routin
 ## Status
 
 v0.513 — core board, auth, character sheets, and Delta Green UI aesthetic are complete. See `ROADMAP.md` for what's next.
+
+---
+
+## Legal
+
+This is a fan-made, noncommercial project. Delta Green is a trademark and copyright owned by the Delta Green Partnership, used here under their fan content policy. This project is not affiliated with or endorsed by Arc Dream Publishing or the Delta Green Partnership.

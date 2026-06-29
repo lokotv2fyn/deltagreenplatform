@@ -105,6 +105,12 @@
 
     </main>
 
+    <footer class="px-8 py-6 mt-8" style="border-top: 1px solid #0f0f0f;">
+      <p class="text-xs font-mono leading-relaxed" style="color: #1e2e21;">
+        This is a fan-made, noncommercial project. Delta Green is a trademark and copyright owned by the Delta Green Partnership, used here under their fan content policy. This project is not affiliated with or endorsed by Arc Dream Publishing or the Delta Green Partnership.
+      </p>
+    </footer>
+
     <!-- Modal: Create operation -->
     <div
       v-if="showCreate"
