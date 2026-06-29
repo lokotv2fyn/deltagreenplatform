@@ -37,7 +37,7 @@
       </div>
     </header>
 
-    <main class="max-w-2xl mx-auto px-8 py-12">
+    <main class="max-w-2xl mx-auto px-8 py-12 pb-20">
 
       <!-- Section header -->
       <div class="flex items-end justify-between mb-8" style="border-bottom: 1px solid #141414; padding-bottom: 1rem;">
@@ -105,7 +105,7 @@
 
     </main>
 
-    <footer class="px-8 py-6 mt-8 flex justify-center" style="border-top: 1px solid #0f0f0f;">
+    <footer class="fixed bottom-0 left-0 right-0 flex justify-center py-3 px-6 pointer-events-none" style="background: linear-gradient(to top, #080808 60%, transparent);">
       <p class="text-center text-xs font-mono leading-relaxed max-w-xl" style="color: #3d5040;">
         This is a fan-made, noncommercial project. Delta Green is a trademark and copyright owned by the Delta Green Partnership, used here under their fan content policy. This project is not affiliated with or endorsed by Arc Dream Publishing or the Delta Green Partnership.
       </p>
