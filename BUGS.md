@@ -15,5 +15,7 @@ Full-screen interrupt for players on handler reveal does not work — the card a
 
 Kort i dashboard: Når de er unrevealed, skal der ikke stå 'spoiler'. Nok nærmere 'unrevealed'.
 
+Bigger bug: Red thread calculates wrong and attaches end of red thread off in relation to the card. See `REDTHREAD_PROBLEM.md` for full diagnosis and next step.
+
 Console bugs:
 - der er en

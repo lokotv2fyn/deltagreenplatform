@@ -41,28 +41,31 @@
             <line v-if="chainDragging"
                   :x1="center(chainDragging.fromCardId).x"
                   :y1="center(chainDragging.fromCardId).y"
-                  :x2="chainDragging.currentX"
-                  :y2="chainDragging.currentY"
+                  :x2="chainDragTarget ? center(chainDragTarget).x : chainDragging.currentX"
+                  :y2="chainDragTarget ? center(chainDragTarget).y : chainDragging.currentY"
                   stroke="#dc2626" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.5"
                   marker-end="url(#chain-tip-preview)" />
           </svg>
 
           <!-- Kort -->
-          <VisualCard
+          <div
             v-for="card in board.cards"
             :key="card.id"
-            :card="card"
-            :is-handler="isHandler"
-            :can-edit="canEdit"
-            :is-dragging="dragging?.cardId === card.id"
-            :is-chain-target="chainDragging != null && hoveredCardId === card.id && card.id !== chainDragging.fromCardId"
-            :style="cardStyle(card)"
+            :ref="el => setCardRef(el, card.id)"
             class="absolute"
+            :style="cardStyle(card)"
             @mousedown.stop="startDrag($event, card)"
             @mouseenter="hoveredCardId = card.id"
-            @mouseleave="hoveredCardId = null"
-            @chain-drag-start="startChainDrag($event, card)"
-          />
+            @mouseleave="hoveredCardId = null">
+            <VisualCard
+              :card="card"
+              :is-handler="isHandler"
+              :can-edit="canEdit"
+              :is-dragging="dragging?.cardId === card.id"
+              :is-chain-target="chainDragTarget === card.id"
+              @chain-drag-start="startChainDrag($event, card)"
+            />
+          </div>
         </div>
       </div>
 
@@ -72,7 +75,7 @@
                 @click="showCreate = true"
                 class="text-xs font-mono tracking-[0.1em] uppercase px-4 py-2 shadow-lg transition-colors create-btn"
                 style="background: #0d0d0d; border: 1px solid #2a2a2a; color: #555;">
-          + Opret kort
+          {{ t('board.create') }}
         </button>
       </div>
     </div>
@@ -183,7 +186,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useBoardStore } from '../../stores/board'
 import { useAuthStore } from '../../stores/auth'
 import { CARD_TYPES, PLAYER_CARD_TYPES } from '../../config/cardTypes'
@@ -199,13 +203,40 @@ const props = defineProps({
   autoRevealEnabled: { type: Boolean, default: false },
 })
 
+const { t } = useI18n()
 const board = useBoardStore()
 const auth  = useAuthStore()
 
 const CANVAS_W = 3000
 const CANVAS_H = 2000
 const CARD_W   = 180
-const CARD_H   = 64
+const CARD_H   = 56 // used only for drag clamping bounds
+
+// ─── Card height tracking via ResizeObserver ──────────────────────────────
+
+const cardHeights = ref({})
+let ro = null
+
+function ensureRO() {
+  if (ro) return
+  ro = new ResizeObserver(entries => {
+    const next = { ...cardHeights.value }
+    for (const e of entries) {
+      const id = e.target.__cardId
+      if (id) next[id] = Math.round(e.contentRect.height)
+    }
+    cardHeights.value = next
+  })
+}
+
+function setCardRef(el, cardId) {
+  if (!el) return
+  ensureRO()
+  el.__cardId = cardId
+  ro.observe(el)
+}
+
+onUnmounted(() => ro?.disconnect())
 
 // ─── Positioning ──────────────────────────────────────────────────────────
 
@@ -227,7 +258,8 @@ function center(cardId) {
   const card = board.cards.find(c => c.id === cardId)
   if (!card) return { x: 0, y: 0 }
   const { x, y } = resolvedPos(card)
-  return { x: x + CARD_W / 2, y: y + CARD_H / 2 }
+  const h = cardHeights.value[cardId] ?? 52
+  return { x: x + 90, y: y + h / 2 }
 }
 
 function cardStyle(card) {
@@ -310,6 +342,13 @@ async function onMouseUp() {
 
 const chainDragging  = ref(null) // { fromCardId, currentX, currentY }
 const hoveredCardId  = ref(null)
+
+// Valid hover target during chain drag (not the source card)
+const chainDragTarget = computed(() =>
+  chainDragging.value && hoveredCardId.value && hoveredCardId.value !== chainDragging.value.fromCardId
+    ? hoveredCardId.value
+    : null
+)
 
 function startChainDrag(e, card) {
   const { x, y } = canvasCoords(e)

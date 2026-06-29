@@ -69,7 +69,7 @@ export const useBoardStore = defineStore('board', () => {
     const x = 120 + Math.random() * 600
     const y = 120 + Math.random() * 400
     await supabase.from('card_positions').insert({ card_id: card.id, minimized: true, x, y })
-    await loadBoard(groupId)
+    await loadBoard(groupId, _operationId)
     return card
   }
 

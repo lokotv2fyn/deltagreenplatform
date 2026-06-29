@@ -4,14 +4,15 @@
 - Add card to red thread directly from the visual tab (not only from the board tab)
 - Red thread: drag-and-drop connections on the canvas — many-to-many instead of a linear chain
 - Hover tooltip on cards: expand content on hover as an alternative to the sidebar click
+- Possibility to right click and drag around board position
 
 ## Player
 - Player token: upload a profile picture as a token, shown as a cursor on the visual board
 - Presence: live mouse cursors — players see each other's position on the canvas in real time
+- What to do if a character ... Possible to 'retire' 'admitted to hospital' 'dead' or custom, that archives the character and lets the player create a new one. The reason of the archival should be like 'stamped' onto the old charactersheet, when it is unfolded from an accordian in the archive section. The archive section should have operations and characters
 
 ## Platform / handler
 - ~~Archive operation: move the entire board to "Ended operations" and start fresh on a new operation~~ ✓ done
-- Landing page: in-character passphrase that must be solved or traced on the page to proceed
 - Terminal card interactivity: players can type commands into the terminal card type; handler defines valid commands and responses
 
 ## Technical debt
