@@ -7,3 +7,5 @@ dist/
 .DS_Store
 supabase/.temp/
 PLATFORM-ARCHITECTURE.md
+REDTHREAD_PROBLEM.md
+REVEAL_PROBLEM.md
