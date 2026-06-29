@@ -275,7 +275,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { supabase } from '../../lib/supabase'
@@ -314,11 +314,32 @@ const interruptCard = computed(() =>
 )
 function dismissInterrupt() { revealQueue.value.shift() }
 
+// IDs of cards already revealed when the player loaded — don't interrupt for these
+const seenRevealedIds = new Set()
+let initPhase = true  // true until initial board load is flushed through Vue's watcher
+
+// Primary path: detect reveals via board.cards changes (cards realtime already works)
+watch(
+  () => board.cards,
+  (cards) => {
+    for (const card of cards) {
+      if (!card.revealed) continue
+      if (initPhase) {
+        seenRevealedIds.add(card.id)  // initial load — mark as seen, no interrupt
+      } else if (!seenRevealedIds.has(card.id)) {
+        seenRevealedIds.add(card.id)
+        if (!revealQueue.value.includes(card.id)) revealQueue.value.push(card.id)
+      }
+    }
+  }
+)
+
+// Secondary path (belt-and-suspenders): via reveal_notifications → lastRevealedId
 watch(() => board.lastRevealedId, (cardId) => {
-  if (!cardId) return
-  const card = board.cards.find(c => c.id === cardId)
-  if (card?.revealed && !revealQueue.value.includes(cardId)) {
-    revealQueue.value.push(cardId)
+  if (!cardId || initPhase) return
+  if (!seenRevealedIds.has(cardId)) {
+    seenRevealedIds.add(cardId)
+    if (!revealQueue.value.includes(cardId)) revealQueue.value.push(cardId)
   }
 })
 
@@ -441,6 +462,9 @@ watch(activeTab, async (tab) => {
 onMounted(async () => {
   await session.loadGroup(groupId)
   await board.loadBoard(groupId, session.currentOperation?.id)
+  // Wait for Vue to flush the board.cards watcher (initial load populates seenRevealedIds)
+  await nextTick()
+  initPhase = false
   await loadSettings()
   board.subscribeRealtime(groupId)
   session.subscribeSession(groupId)
