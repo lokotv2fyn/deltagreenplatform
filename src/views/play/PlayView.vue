@@ -189,6 +189,40 @@
         <CharacterSheet v-else :group-id="groupId" :initial-data="character.mySheet?.data ?? null" />
       </template>
 
+      <!-- ─── ARCHIVES ────────────────────────────────────────────── -->
+      <template v-else-if="activeTab === 'archives'">
+        <div v-if="archivesLoading" class="text-xs font-mono" style="color: #506858;">
+          {{ t('archives.loading') }}
+        </div>
+        <div v-else-if="!archives.length" class="text-xs font-mono" style="color: #506858;">
+          {{ t('archives.empty') }}
+        </div>
+        <div v-else class="max-w-3xl space-y-2">
+          <div v-for="op in archives" :key="op.id"
+               style="border: 1px solid #1a1a1a;">
+            <button class="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
+                    :style="expandedArchive === op.id ? 'background: #0d0d0d;' : 'background: #080808;'"
+                    @click="expandedArchive = expandedArchive === op.id ? null : op.id">
+              <span class="flex-1 font-mono truncate" style="color: #c4c4c4;">{{ op.name }}</span>
+              <span class="text-xs font-mono shrink-0" style="color: #506858;">
+                {{ formatDate(op.archived_at) }}
+              </span>
+              <svg class="w-4 h-4 transition-transform shrink-0 ml-1"
+                   :class="expandedArchive === op.id ? 'rotate-180' : ''"
+                   style="color: #2a2a2a;"
+                   xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+              </svg>
+            </button>
+            <div v-if="expandedArchive === op.id"
+                 class="px-6 py-6"
+                 style="border-top: 1px solid #1a1a1a; background: #080808;">
+              <ArchiveBoard :group-id="groupId" :operation-id="op.id" :is-handler="false" />
+            </div>
+          </div>
+        </div>
+      </template>
+
       <!-- ─── PROFILE ────────────────────────────────────────────── -->
       <template v-else-if="activeTab === 'profil'">
         <div class="max-w-sm space-y-6">
@@ -255,6 +289,7 @@ import RevealInterrupt from '../../components/RevealInterrupt.vue'
 import CharacterSheet from '../../components/CharacterSheet.vue'
 import { useCharacterStore } from '../../stores/character'
 import VisualBoard from '../../components/board/VisualBoard.vue'
+import ArchiveBoard from '../../components/board/ArchiveBoard.vue'
 import { useLang } from '../../composables/useLang'
 
 const { t, locale: i18nLocale } = useI18n()
@@ -293,6 +328,7 @@ const tabs = [
   { id: 'notes',     labelKey: 'tabs.notes' },
   { id: 'character', labelKey: 'tabs.character' },
   { id: 'profil',    labelKey: 'tabs.profile' },
+  { id: 'archives',  labelKey: 'tabs.archives' },
 ]
 
 // ─── Notes ───────────────────────────────────────────────────────────────────
@@ -361,6 +397,23 @@ async function saveDisplayName() {
   setTimeout(() => { nameSaved.value = false }, 2000)
 }
 
+// ─── Archives ────────────────────────────────────────────────────────────────
+const archives        = ref([])
+const archivesLoading = ref(false)
+const expandedArchive = ref(null)
+
+async function loadArchives() {
+  archivesLoading.value = true
+  const { data } = await supabase
+    .from('operations')
+    .select('id, name, archived_at, created_at')
+    .eq('group_id', groupId)
+    .not('archived_at', 'is', null)
+    .order('archived_at', { ascending: false })
+  archives.value = data ?? []
+  archivesLoading.value = false
+}
+
 // ─── Settings ───────────────────────────────────────────────────────────────
 async function loadSettings() {
   const { data } = await supabase
@@ -378,15 +431,16 @@ function formatDate(iso) {
 }
 
 // ─── Lifecycle ───────────────────────────────────────────────────────────────
-watch(activeTab, (tab) => {
+watch(activeTab, async (tab) => {
   if (tab === 'notes') loadNotes()
   if (tab === 'character') character.loadMySheet(groupId)
   if (tab === 'profil') displayName.value = auth.profile?.display_name ?? ''
+  if (tab === 'archives') await loadArchives()
 })
 
 onMounted(async () => {
   await session.loadGroup(groupId)
-  await board.loadBoard(groupId)
+  await board.loadBoard(groupId, session.currentOperation?.id)
   await loadSettings()
   board.subscribeRealtime(groupId)
   session.subscribeSession(groupId)

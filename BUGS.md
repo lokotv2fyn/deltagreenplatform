@@ -13,6 +13,7 @@
 **Reveal interrupt**
 Full-screen interrupt for players on handler reveal does not work — the card appears on the canvas but the interrupt overlay is never triggered. See `REVEAL_PROBLEM.md` for full diagnosis and next steps.
 
+Kort i dashboard: Når de er unrevealed, skal der ikke stå 'spoiler'. Nok nærmere 'unrevealed'.
 
 Console bugs:
-Som spiller logget ind: index-B3XoZ1Bu.js:65  GET https://kqyuxjzwgtqtnenapqhm.supabase.co/rest/v1/group_settings?select=auto_reveal_player_cards&group_id=eq.5f3f00b7-4f0c-48e3-8b56-aa70d74d3768 406 (Not Acceptable)
+- der er en

@@ -10,12 +10,13 @@ export const useSessionStore = defineStore('session', () => {
   const sessionStatus = computed(() => currentSession.value?.status ?? null)
   const isActive = computed(() => sessionStatus.value === 'active')
   const isPaused = computed(() => sessionStatus.value === 'paused')
+  const currentOperation = computed(() => group.value?.current_operation ?? null)
 
   async function loadGroup(groupId) {
     loading.value = true
     const { data, error } = await supabase
       .from('groups')
-      .select('id, name, description, created_by, current_session_id, created_at, current_session:sessions!current_session_id(*)')
+      .select('id, name, description, created_by, current_session_id, created_at, current_session:sessions!current_session_id(*), current_operation:operations!current_operation_id(id, name)')
       .eq('id', groupId)
       .single()
     if (!error) {
@@ -70,7 +71,7 @@ export const useSessionStore = defineStore('session', () => {
   }
 
   return {
-    group, currentSession, loading, sessionStatus, isActive, isPaused,
+    group, currentSession, currentOperation, loading, sessionStatus, isActive, isPaused,
     loadGroup, startSession, stopSession, subscribeSession, unsubscribeSession, reset,
   }
 })

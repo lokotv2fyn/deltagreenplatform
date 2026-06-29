@@ -18,19 +18,19 @@
       </span>
 
       <!-- Red thread -->
-      <button v-if="canEditChain && inChain" @click.stop="toggleChain"
+      <button v-if="!readonly && canEditChain && inChain" @click.stop="toggleChain"
               :title="t('card.remove_chain', { pos: chainPos })"
               class="shrink-0 text-xs font-mono p-0.5 transition-colors chain-active">
         {{ chainPos }}
       </button>
-      <button v-else-if="canEditChain" @click.stop="toggleChain"
+      <button v-else-if="!readonly && canEditChain" @click.stop="toggleChain"
               :title="t('card.add_chain')"
               class="shrink-0 text-xs font-mono p-0.5 transition-colors chain-inactive">
         #
       </button>
 
       <!-- Reveal toggle (handler) -->
-      <button v-if="isHandler" @click.stop="toggleReveal"
+      <button v-if="!readonly && isHandler" @click.stop="toggleReveal"
               :title="card.revealed ? t('card.reveal_hide') : t('card.reveal_show')"
               class="shrink-0 p-0.5 transition-colors icon-btn">
         <svg v-if="card.revealed" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -82,7 +82,7 @@
         </div>
       </template>
 
-      <div v-if="canModify" class="flex gap-4 pt-2" style="border-top: 1px solid #1a1a1a;">
+      <div v-if="!readonly && canModify" class="flex gap-4 pt-2" style="border-top: 1px solid #1a1a1a;">
         <button @click.stop="showEdit = true"
                 class="text-xs font-mono transition-colors action-btn-text" style="color: #506858;">
           {{ t('card.edit') }}
@@ -121,6 +121,7 @@ const props = defineProps({
   card: { type: Object, required: true },
   isHandler: { type: Boolean, default: false },
   canEditChain: { type: Boolean, default: false },
+  readonly: { type: Boolean, default: false },
 })
 
 const board = useBoardStore()

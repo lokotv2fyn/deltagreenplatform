@@ -279,6 +279,67 @@
             </button>
           </section>
 
+          <section>
+            <p class="text-xs font-mono tracking-[0.2em] uppercase mb-4" style="color: #506858; border-bottom: 1px solid #1a1a1a; padding-bottom: 0.5rem;">
+              {{ t('settings.operation_title') }}
+            </p>
+            <input v-model="operationName" type="text"
+                   class="w-full font-mono text-sm px-3 py-2 focus:outline-none mb-2"
+                   style="background: #0d0d0d; border: 1px solid #1a1a1a; color: #c4c4c4;"
+                   :placeholder="t('settings.operation_name_placeholder')"
+                   @keyup.enter="saveOperationName" />
+            <button @click="saveOperationName"
+                    class="text-xs font-mono tracking-[0.1em] uppercase px-3 py-1.5 transition-colors action-btn"
+                    style="border: 1px solid #2a2a2a; color: #5e8068;">
+              {{ t('settings.save') }}
+            </button>
+
+            <div class="mt-8 pt-6" style="border-top: 1px solid #1a1a1a;">
+              <p class="text-xs font-mono mb-3" style="color: #3a3a3a;">
+                {{ t('settings.archive_hint') }}
+              </p>
+              <button @click="openArchiveDialog"
+                      class="text-xs font-mono tracking-[0.1em] uppercase px-3 py-1.5 transition-colors action-btn"
+                      style="border: 1px solid #2a2a2a; color: #506858;">
+                {{ t('settings.archive_btn') }}
+              </button>
+            </div>
+          </section>
+
+        </div>
+      </template>
+
+      <!-- ─── ARCHIVES ────────────────────────────────────────────── -->
+      <template v-else-if="activeTab === 'archives'">
+        <div v-if="archivesLoading" class="text-xs font-mono" style="color: #506858;">
+          {{ t('archives.loading') }}
+        </div>
+        <div v-else-if="!archives.length" class="text-xs font-mono" style="color: #506858;">
+          {{ t('archives.empty') }}
+        </div>
+        <div v-else class="max-w-3xl space-y-2">
+          <div v-for="op in archives" :key="op.id"
+               style="border: 1px solid #1a1a1a;">
+            <button class="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
+                    :style="expandedArchive === op.id ? 'background: #0d0d0d;' : 'background: #080808;'"
+                    @click="expandedArchive = expandedArchive === op.id ? null : op.id">
+              <span class="flex-1 font-mono truncate" style="color: #c4c4c4;">{{ op.name }}</span>
+              <span class="text-xs font-mono shrink-0" style="color: #506858;">
+                {{ formatDate(op.archived_at) }}
+              </span>
+              <svg class="w-4 h-4 transition-transform shrink-0 ml-1"
+                   :class="expandedArchive === op.id ? 'rotate-180' : ''"
+                   style="color: #2a2a2a;"
+                   xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+              </svg>
+            </button>
+            <div v-if="expandedArchive === op.id"
+                 class="px-6 py-6"
+                 style="border-top: 1px solid #1a1a1a; background: #080808;">
+              <ArchiveBoard :group-id="groupId" :operation-id="op.id" :is-handler="true" />
+            </div>
+          </div>
         </div>
       </template>
 
@@ -292,6 +353,38 @@
       @close="showCreate = false"
       @created="showCreate = false"
     />
+
+    <!-- Archive dialog -->
+    <div v-if="showArchiveDialog"
+         class="fixed inset-0 flex items-center justify-center p-4 z-50"
+         style="background: rgba(0,0,0,0.85);"
+         @click.self="showArchiveDialog = false">
+      <div class="w-full max-w-sm" style="background: #0d0d0d; border: 1px solid #2a2a2a;">
+        <div class="px-6 py-4" style="border-bottom: 1px solid #1a1a1a;">
+          <h2 class="text-sm font-mono" style="color: #c4c4c4;">{{ t('settings.archive_dialog_title') }}</h2>
+        </div>
+        <div class="px-6 py-5">
+          <label class="text-xs font-mono tracking-[0.15em] uppercase block mb-2" style="color: #506858;">
+            {{ t('settings.archive_new_name') }}
+          </label>
+          <input v-model="newOpName" type="text"
+                 class="w-full font-mono text-sm px-3 py-2 focus:outline-none"
+                 style="background: #080808; border: 1px solid #2a2a2a; color: #c4c4c4;" />
+        </div>
+        <div class="px-6 py-4 flex justify-end gap-4" style="border-top: 1px solid #1a1a1a;">
+          <button @click="showArchiveDialog = false"
+                  class="text-xs font-mono tracking-[0.1em] uppercase transition-colors"
+                  style="color: #506858;">
+            {{ t('session.cancel') }}
+          </button>
+          <button @click="doArchive" :disabled="archiving || !newOpName.trim()"
+                  class="text-xs font-mono tracking-[0.1em] uppercase px-4 py-2 transition-colors session-btn-start disabled:opacity-30"
+                  style="border: 1px solid #1f4a2a; color: #4a7c59;">
+            {{ archiving ? t('dashboard.creating') : t('session.start_btn') }}
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- Start session dialog -->
     <div v-if="showStartDialog"
@@ -344,6 +437,7 @@ import TheChain from '../../components/board/TheChain.vue'
 import CharacterSheet from '../../components/CharacterSheet.vue'
 import { useCharacterStore } from '../../stores/character'
 import VisualBoard from '../../components/board/VisualBoard.vue'
+import ArchiveBoard from '../../components/board/ArchiveBoard.vue'
 import { useLang } from '../../composables/useLang'
 
 const { t, locale: i18nLocale } = useI18n()
@@ -369,6 +463,7 @@ const tabs = [
   { id: 'notes',    labelKey: 'tabs.player_notes' },
   { id: 'activity', labelKey: 'tabs.activity' },
   { id: 'settings', labelKey: 'tabs.settings' },
+  { id: 'archives', labelKey: 'tabs.archives' },
 ]
 
 // ─── Notes ───────────────────────────────────────────────────────────────────
@@ -500,6 +595,64 @@ async function doStopSession() {
   await session.stopSession()
 }
 
+// ─── Operation management ────────────────────────────────────────────────────
+const operationName     = ref('')
+const showArchiveDialog = ref(false)
+const newOpName         = ref('')
+const archiving         = ref(false)
+const archives          = ref([])
+const archivesLoading   = ref(false)
+const expandedArchive   = ref(null)
+
+async function loadArchives() {
+  archivesLoading.value = true
+  const { data } = await supabase
+    .from('operations')
+    .select('id, name, archived_at, created_at')
+    .eq('group_id', groupId)
+    .not('archived_at', 'is', null)
+    .order('archived_at', { ascending: false })
+  archives.value = data ?? []
+  archivesLoading.value = false
+}
+
+async function openArchiveDialog() {
+  const { count } = await supabase
+    .from('operations')
+    .select('id', { count: 'exact', head: true })
+    .eq('group_id', groupId)
+  newOpName.value = `Operation ${(count ?? 0) + 1}`
+  showArchiveDialog.value = true
+}
+
+async function saveOperationName() {
+  const name = operationName.value.trim()
+  if (!name || !session.currentOperation) return
+  await supabase.rpc('rename_operation', {
+    p_operation_id: session.currentOperation.id,
+    p_name: name,
+  })
+  await session.loadGroup(groupId)
+}
+
+async function doArchive() {
+  if (!newOpName.value.trim()) return
+  archiving.value = true
+  try {
+    await supabase.rpc('archive_operation', {
+      p_group_id: groupId,
+      p_new_name: newOpName.value.trim(),
+    })
+    await session.loadGroup(groupId)
+    await board.loadBoard(groupId, session.currentOperation?.id)
+    operationName.value = session.currentOperation?.name ?? ''
+    showArchiveDialog.value = false
+    if (activeTab.value === 'archives') await loadArchives()
+  } finally {
+    archiving.value = false
+  }
+}
+
 // ─── Agents ──────────────────────────────────────────────────────────────────
 function agentSAN(sheet) {
   const d = sheet?.data
@@ -523,16 +676,18 @@ function formatTime(iso) {
 watch(activeTab, async (tab) => {
   if (tab === 'notes') loadNotes()
   if (tab === 'activity') loadActivity()
-  if (tab === 'settings') loadSettings()
-  if (tab === 'agents') {
-    await character.loadAllSheets(groupId)
+  if (tab === 'settings') {
+    loadSettings()
+    operationName.value = session.currentOperation?.name ?? ''
   }
+  if (tab === 'agents') await character.loadAllSheets(groupId)
+  if (tab === 'archives') await loadArchives()
 })
 
 // ─── Lifecycle ───────────────────────────────────────────────────────────────
 onMounted(async () => {
   await session.loadGroup(groupId)
-  await board.loadBoard(groupId)
+  await board.loadBoard(groupId, session.currentOperation?.id)
   board.subscribeRealtime(groupId)
   session.subscribeSession(groupId)
 })

@@ -76,6 +76,25 @@ create table sessions (
 -- Used by RLS to determine whether players can write to the board right now.
 alter table groups add column current_session_id uuid references sessions(id);
 
+-- Named operation containers (migration 011). One is current (archived_at IS NULL);
+-- the rest are archived and viewable by handler + players in the Archives tab.
+create table operations (
+  id          uuid        primary key default gen_random_uuid(),
+  group_id    uuid        not null references groups(id) on delete cascade,
+  name        text        not null,
+  archived_at timestamptz,
+  created_at  timestamptz not null default now()
+);
+
+-- Pointer to the currently active operation
+alter table groups add column current_operation_id uuid references operations(id);
+
+-- cards and chain_links get an operation_id FK (set null when operation deleted)
+alter table cards       add column operation_id uuid references operations(id) on delete set null;
+alter table chain_links add column operation_id uuid references operations(id) on delete set null;
+
+-- RPCs: archive_operation(p_group_id, p_new_name) and rename_operation(p_operation_id, p_name)
+
 -- Helper function: is the group's current sitting 'active' (not paused / none)?
 create function session_active(g uuid) returns boolean as $$
   select exists (

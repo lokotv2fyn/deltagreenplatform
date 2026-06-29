@@ -67,7 +67,10 @@ Deno.serve(async (req) => {
       })
     }
 
-    const res = await fetch(`${Deno.env.get('SUPABASE_URL')}/auth/v1/otp`, {
+    const otpUrl = new URL(`${Deno.env.get('SUPABASE_URL')}/auth/v1/otp`)
+    if (redirectTo) otpUrl.searchParams.set('redirect_to', redirectTo)
+
+    const res = await fetch(otpUrl.toString(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -76,7 +79,6 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         email: email.toLowerCase().trim(),
         create_user: true,
-        ...(redirectTo ? { options: { emailRedirectTo: redirectTo } } : {}),
       }),
     })
 

@@ -63,7 +63,8 @@
     "agents": "Agenter",
     "player_notes": "Spillernoter",
     "activity": "Aktivitet",
-    "settings": "Indstillinger"
+    "settings": "Indstillinger",
+    "archives": "Arkiv"
   },
   "board": {
     "loading": "Henter filer…",
@@ -188,7 +189,17 @@
     "group_name_placeholder": "Navn på operationen",
     "group_desc_title": "Beskrivelse",
     "group_desc_placeholder": "Vises for agenter på forsiden",
-    "save": "Gem"
+    "save": "Gem",
+    "operation_title": "Aktuel operation",
+    "operation_name_placeholder": "Operationsnavn",
+    "archive_hint": "Arkivér den aktuelle operation og start en ny med tomt board og tom rød tråd.",
+    "archive_btn": "Arkivér & start ny →",
+    "archive_dialog_title": "Arkivér operation & start ny",
+    "archive_new_name": "Navn på ny operation"
+  },
+  "archives": {
+    "loading": "Henter arkiv…",
+    "empty": "Ingen arkiverede operationer endnu."
   },
   "handler": {
     "role": "Handler"

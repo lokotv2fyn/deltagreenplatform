@@ -15,6 +15,7 @@ export const useBoardStore = defineStore('board', () => {
   const loading = ref(false)
   const lastRevealedId = ref(null)
   let _groupId = null
+  let _operationId = null
   let channel = null
 
   const onBoard = computed(() => cards.value.filter(c => c.revealed))
@@ -35,12 +36,19 @@ export const useBoardStore = defineStore('board', () => {
     return chainLinks.value.find(l => l.card_id === cardId)?.position
   }
 
-  async function loadBoard(groupId) {
+  async function loadBoard(groupId, operationId) {
     _groupId = groupId
+    _operationId = operationId ?? null
     loading.value = true
+    let cardsQ = supabase.from('cards').select('*, card_positions(*)').eq('group_id', groupId).order('created_at')
+    let chainQ = supabase.from('chain_links').select('*').eq('group_id', groupId).order('position')
+    if (_operationId) {
+      cardsQ = cardsQ.eq('operation_id', _operationId)
+      chainQ = chainQ.eq('operation_id', _operationId)
+    }
     const [cardsRes, chainRes, chainStateRes] = await Promise.all([
-      supabase.from('cards').select('*, card_positions(*)').eq('group_id', groupId).order('created_at'),
-      supabase.from('chain_links').select('*').eq('group_id', groupId).order('position'),
+      cardsQ,
+      chainQ,
       supabase.from('chain_state').select('hidden').eq('group_id', groupId).maybeSingle(),
     ])
     if (!cardsRes.error) cards.value = cardsRes.data ?? []
@@ -54,7 +62,7 @@ export const useBoardStore = defineStore('board', () => {
     const { data: { user } } = await supabase.auth.getUser()
     const { data: card, error } = await supabase
       .from('cards')
-      .insert({ group_id: groupId, session_id: sessionId, type, label, data, origin, revealed, created_by: user.id })
+      .insert({ group_id: groupId, session_id: sessionId, type, label, data, origin, revealed, created_by: user.id, operation_id: _operationId })
       .select()
       .single()
     if (error) throw error
@@ -130,7 +138,7 @@ export const useBoardStore = defineStore('board', () => {
     const { data: { user } } = await supabase.auth.getUser()
     const { data, error } = await supabase
       .from('chain_links')
-      .insert({ group_id: _groupId, card_id: cardId, position: nextPos, added_by: user.id })
+      .insert({ group_id: _groupId, card_id: cardId, position: nextPos, added_by: user.id, operation_id: _operationId })
       .select()
       .single()
     if (error) throw error
@@ -178,23 +186,23 @@ export const useBoardStore = defineStore('board', () => {
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'cards',
         filter: `group_id=eq.${groupId}`,
-      }, () => loadBoard(groupId))
+      }, () => loadBoard(groupId, _operationId))
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'card_positions',
-      }, () => loadBoard(groupId))
+      }, () => loadBoard(groupId, _operationId))
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'chain_links',
         filter: `group_id=eq.${groupId}`,
-      }, () => loadBoard(groupId))
+      }, () => loadBoard(groupId, _operationId))
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'chain_state',
         filter: `group_id=eq.${groupId}`,
-      }, () => loadBoard(groupId))
+      }, () => loadBoard(groupId, _operationId))
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'reveal_notifications',
         filter: `group_id=eq.${groupId}`,
       }, async (payload) => {
-        await loadBoard(groupId)
+        await loadBoard(groupId, _operationId)
         lastRevealedId.value = payload.new.card_id
       })
       .subscribe()
@@ -208,6 +216,7 @@ export const useBoardStore = defineStore('board', () => {
     chainVisible.value = true
     lastRevealedId.value = null
     _groupId = null
+    _operationId = null
   }
 
   return {

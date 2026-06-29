@@ -63,7 +63,8 @@
     "agents": "Agents",
     "player_notes": "Player notes",
     "activity": "Activity",
-    "settings": "Settings"
+    "settings": "Settings",
+    "archives": "Archives"
   },
   "board": {
     "loading": "Loading files…",
@@ -188,7 +189,17 @@
     "group_name_placeholder": "Name of the operation",
     "group_desc_title": "Description",
     "group_desc_placeholder": "Shown to agents on the front page",
-    "save": "Save"
+    "save": "Save",
+    "operation_title": "Current operation",
+    "operation_name_placeholder": "Operation name",
+    "archive_hint": "Archive the current operation and start a new one with an empty board and red thread.",
+    "archive_btn": "Archive & start new →",
+    "archive_dialog_title": "Archive operation & start new",
+    "archive_new_name": "New operation name"
+  },
+  "archives": {
+    "loading": "Loading archive…",
+    "empty": "No archived operations yet."
   },
   "handler": {
     "role": "Handler"
