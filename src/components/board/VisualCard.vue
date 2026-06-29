@@ -1,6 +1,7 @@
 <template>
-  <div class="rounded border shadow-md select-none"
+  <div class="group rounded border shadow-md select-none relative"
        :class="[typeStyle, isDragging ? 'shadow-2xl ring-1 ring-neutral-500' : 'hover:shadow-xl hover:border-opacity-80']"
+       :style="isChainTarget ? 'box-shadow: 0 0 0 2px #dc2626; border-color: #dc2626;' : ''"
        style="width: 180px;">
 
     <!-- Type + chain pos + spoiler dot -->
@@ -26,6 +27,21 @@
     <p class="px-2 py-1.5 text-sm font-medium text-neutral-200 leading-tight line-clamp-2">
       {{ card.label }}
     </p>
+
+    <!-- Chain drag handle — appears on hover when editing is allowed -->
+    <div v-if="canEdit"
+         class="absolute top-0 right-0 w-5 h-5 flex items-center justify-center
+                opacity-0 group-hover:opacity-100 transition-opacity z-10"
+         style="cursor: crosshair; color: #dc2626; top: -8px; right: -8px;
+                background: #0d0d0d; border: 1px solid #dc262640; border-radius: 2px;"
+         @mousedown.stop.prevent="$emit('chain-drag-start', $event)"
+         title="Træk for at forbinde med rød tråd">
+      <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 10 10" fill="none">
+        <circle cx="2" cy="5" r="1.5" fill="#dc2626"/>
+        <line x1="3.5" y1="5" x2="6.5" y2="5" stroke="#dc2626" stroke-width="1"/>
+        <circle cx="8" cy="5" r="1.5" fill="#dc2626"/>
+      </svg>
+    </div>
   </div>
 </template>
 
@@ -35,10 +51,14 @@ import { CARD_TYPES, PLAYER_CARD_TYPES } from '../../config/cardTypes'
 import { useBoardStore } from '../../stores/board'
 
 const props = defineProps({
-  card:      { type: Object,  required: true },
-  isHandler: { type: Boolean, default: false },
-  isDragging:{ type: Boolean, default: false },
+  card:         { type: Object,  required: true },
+  isHandler:    { type: Boolean, default: false },
+  isDragging:   { type: Boolean, default: false },
+  canEdit:      { type: Boolean, default: false },
+  isChainTarget:{ type: Boolean, default: false },
 })
+
+defineEmits(['chain-drag-start'])
 
 const board = useBoardStore()
 

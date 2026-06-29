@@ -1,55 +1,79 @@
 <template>
   <div class="flex h-full w-full overflow-hidden">
 
-    <!-- ─── CANVAS CONTAINER ──────────────────────────────────────────── -->
-    <div ref="containerEl"
-         class="flex-1 overflow-auto relative"
-         @mousemove="onMouseMove"
-         @mouseup="onMouseUp"
-         @mouseleave="onMouseUp"
-         @click.self="selectedCard = null">
+    <!-- ─── CANVAS WRAPPER ──────────────────────────────────────────────── -->
+    <div class="flex-1 relative overflow-hidden">
 
-      <div style="width: 3000px; height: 2000px; position: relative;"
-           class="canvas-bg"
+      <!-- Scrollable canvas container -->
+      <div ref="containerEl"
+           class="w-full h-full overflow-auto no-scrollbar relative"
+           @mousemove="onMouseMove"
+           @mouseup="onMouseUp"
+           @mouseleave="onMouseUp"
            @click.self="selectedCard = null">
 
-        <!-- SVG rød tråd (bag kortene, pointer-events none) -->
-        <svg class="absolute inset-0 pointer-events-none"
-             width="3000" height="2000" style="z-index: 0; overflow: visible;">
-          <defs>
-            <marker id="chain-tip" markerWidth="7" markerHeight="5"
-                    refX="6" refY="2.5" orient="auto">
-              <polygon points="0 0, 7 2.5, 0 5" fill="#dc2626" opacity="0.85" />
-            </marker>
-          </defs>
-          <line v-for="(link, i) in board.chain.slice(0, -1)" :key="link.id"
-                :x1="center(link.card_id).x" :y1="center(link.card_id).y"
-                :x2="center(board.chain[i + 1].card_id).x" :y2="center(board.chain[i + 1].card_id).y"
-                stroke="#dc2626" stroke-width="1.5" opacity="0.75"
-                marker-end="url(#chain-tip)" />
-        </svg>
+        <div style="width: 3000px; height: 2000px; position: relative;"
+             class="canvas-bg"
+             @click.self="selectedCard = null">
 
-        <!-- Kort -->
-        <VisualCard
-          v-for="card in board.cards"
-          :key="card.id"
-          :card="card"
-          :is-handler="isHandler"
-          :is-dragging="dragging?.cardId === card.id"
-          :style="cardStyle(card)"
-          class="absolute"
-          @mousedown.stop="startDrag($event, card)"
-        />
+          <!-- SVG rød tråd + chain-drag preview -->
+          <svg class="absolute inset-0 pointer-events-none"
+               width="3000" height="2000" style="z-index: 0; overflow: visible;">
+            <defs>
+              <marker id="chain-tip" markerWidth="7" markerHeight="5"
+                      refX="6" refY="2.5" orient="auto">
+                <polygon points="0 0, 7 2.5, 0 5" fill="#dc2626" opacity="0.85" />
+              </marker>
+              <marker id="chain-tip-preview" markerWidth="7" markerHeight="5"
+                      refX="6" refY="2.5" orient="auto">
+                <polygon points="0 0, 7 2.5, 0 5" fill="#dc2626" opacity="0.5" />
+              </marker>
+            </defs>
 
-        <!-- Opret-knap (overlay øverst til venstre) -->
-        <div class="fixed bottom-6 right-6 z-30" style="pointer-events: all;">
-          <button v-if="canEdit"
-                  @click="showCreate = true"
-                  class="text-xs font-mono tracking-[0.1em] uppercase px-4 py-2 shadow-lg transition-colors create-btn"
-                  style="background: #0d0d0d; border: 1px solid #2a2a2a; color: #555;">
-            + Opret kort
-          </button>
+            <!-- Eksisterende kæde-linjer -->
+            <line v-for="(link, i) in board.chain.slice(0, -1)" :key="link.id"
+                  :x1="center(link.card_id).x" :y1="center(link.card_id).y"
+                  :x2="center(board.chain[i + 1].card_id).x" :y2="center(board.chain[i + 1].card_id).y"
+                  stroke="#dc2626" stroke-width="1.5" opacity="0.75"
+                  marker-end="url(#chain-tip)" />
+
+            <!-- Chain-drag preview linje -->
+            <line v-if="chainDragging"
+                  :x1="center(chainDragging.fromCardId).x"
+                  :y1="center(chainDragging.fromCardId).y"
+                  :x2="chainDragging.currentX"
+                  :y2="chainDragging.currentY"
+                  stroke="#dc2626" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.5"
+                  marker-end="url(#chain-tip-preview)" />
+          </svg>
+
+          <!-- Kort -->
+          <VisualCard
+            v-for="card in board.cards"
+            :key="card.id"
+            :card="card"
+            :is-handler="isHandler"
+            :can-edit="canEdit"
+            :is-dragging="dragging?.cardId === card.id"
+            :is-chain-target="chainDragging != null && hoveredCardId === card.id && card.id !== chainDragging.fromCardId"
+            :style="cardStyle(card)"
+            class="absolute"
+            @mousedown.stop="startDrag($event, card)"
+            @mouseenter="hoveredCardId = card.id"
+            @mouseleave="hoveredCardId = null"
+            @chain-drag-start="startChainDrag($event, card)"
+          />
         </div>
+      </div>
+
+      <!-- Opret-knap — udenfor scroll-area, aldrig bag sidebar -->
+      <div class="absolute bottom-6 right-6 z-30">
+        <button v-if="canEdit"
+                @click="showCreate = true"
+                class="text-xs font-mono tracking-[0.1em] uppercase px-4 py-2 shadow-lg transition-colors create-btn"
+                style="background: #0d0d0d; border: 1px solid #2a2a2a; color: #555;">
+          + Opret kort
+        </button>
       </div>
     </div>
 
@@ -210,15 +234,18 @@ function cardStyle(card) {
   const { x, y } = resolvedPos(card)
   const draggingThis = dragging.value?.cardId === card.id
   const selected     = selectedCard.value?.id === card.id
+  const chainTarget  = chainDragging.value && hoveredCardId.value === card.id && card.id !== chainDragging.value.fromCardId
   return {
     left:   `${x}px`,
     top:    `${y}px`,
-    zIndex: draggingThis ? 100 : selected ? 10 : 1,
-    cursor: props.canEdit ? (draggingThis ? 'grabbing' : 'grab') : 'default',
+    zIndex: draggingThis ? 100 : selected ? 10 : chainTarget ? 20 : 1,
+    cursor: chainDragging.value
+      ? (chainTarget ? 'copy' : 'crosshair')
+      : props.canEdit ? (draggingThis ? 'grabbing' : 'grab') : 'default',
   }
 }
 
-// ─── Drag ─────────────────────────────────────────────────────────────────
+// ─── Card drag ────────────────────────────────────────────────────────────
 
 const containerEl = ref(null)
 const dragging    = ref(null)
@@ -232,6 +259,7 @@ function canvasCoords(e) {
 }
 
 function startDrag(e, card) {
+  if (chainDragging.value) return
   if (!props.canEdit) {
     selectedCard.value = card
     return
@@ -242,14 +270,32 @@ function startDrag(e, card) {
 }
 
 function onMouseMove(e) {
-  if (!dragging.value) return
-  const { x, y } = canvasCoords(e)
-  dragging.value.currentX = Math.max(0, Math.min(CANVAS_W - CARD_W, x - dragging.value.offsetX))
-  dragging.value.currentY = Math.max(0, Math.min(CANVAS_H - CARD_H, y - dragging.value.offsetY))
-  dragging.value.hasMoved = true
+  if (dragging.value) {
+    const { x, y } = canvasCoords(e)
+    dragging.value.currentX = Math.max(0, Math.min(CANVAS_W - CARD_W, x - dragging.value.offsetX))
+    dragging.value.currentY = Math.max(0, Math.min(CANVAS_H - CARD_H, y - dragging.value.offsetY))
+    dragging.value.hasMoved = true
+  }
+  if (chainDragging.value) {
+    const { x, y } = canvasCoords(e)
+    chainDragging.value.currentX = x
+    chainDragging.value.currentY = y
+  }
 }
 
 async function onMouseUp() {
+  // Chain drag: connect on drop
+  if (chainDragging.value) {
+    const fromId = chainDragging.value.fromCardId
+    const toId   = hoveredCardId.value
+    chainDragging.value = null
+    if (toId && toId !== fromId) {
+      if (!board.isInChain(fromId)) await board.addToChain(fromId)
+      if (!board.isInChain(toId))   await board.addToChain(toId)
+    }
+    return
+  }
+
   if (!dragging.value) return
   const { cardId, currentX, currentY, hasMoved } = dragging.value
   dragging.value = null
@@ -258,6 +304,16 @@ async function onMouseUp() {
   } else {
     selectedCard.value = board.cards.find(c => c.id === cardId) ?? null
   }
+}
+
+// ─── Chain drag ───────────────────────────────────────────────────────────
+
+const chainDragging  = ref(null) // { fromCardId, currentX, currentY }
+const hoveredCardId  = ref(null)
+
+function startChainDrag(e, card) {
+  const { x, y } = canvasCoords(e)
+  chainDragging.value = { fromCardId: card.id, currentX: x, currentY: y }
 }
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────
@@ -313,6 +369,8 @@ async function deleteSelected() {
   background-attachment: fixed, fixed;
   background-repeat: repeat, no-repeat;
 }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
 .create-btn:hover { border-color: #555; color: #c4c4c4; }
 .slide-enter-active,
 .slide-leave-active { transition: transform 0.2s ease, opacity 0.2s ease; }
