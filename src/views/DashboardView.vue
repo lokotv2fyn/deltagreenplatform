@@ -107,7 +107,7 @@
 
     <footer class="fixed bottom-0 left-0 right-0 flex justify-center py-3 px-6 pointer-events-none" style="background: linear-gradient(to top, #080808 60%, transparent);">
       <p class="text-center text-xs font-mono leading-relaxed max-w-xl" style="color: #3d5040;">
-        This is a fan-made, noncommercial project. Delta Green is a trademark and copyright owned by the Delta Green Partnership, used here under their fan content policy. This project is not affiliated with or endorsed by Arc Dream Publishing or the Delta Green Partnership.
+        {{ t('legal.disclaimer') }}
       </p>
     </footer>
 

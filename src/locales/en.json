@@ -201,6 +201,9 @@
     "loading": "Loading archive…",
     "empty": "No archived operations yet."
   },
+  "legal": {
+    "disclaimer": "This is a fan-made, noncommercial project. Delta Green is a trademark and copyright owned by the Delta Green Partnership, used here under their fan content policy. This project is not affiliated with or endorsed by Arc Dream Publishing or the Delta Green Partnership."
+  },
   "handler": {
     "role": "Handler"
   },

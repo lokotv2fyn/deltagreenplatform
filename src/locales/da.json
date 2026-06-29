@@ -201,6 +201,9 @@
     "loading": "Henter arkiv…",
     "empty": "Ingen arkiverede operationer endnu."
   },
+  "legal": {
+    "disclaimer": "Dette er et fan-lavet, ikke-kommercielt projekt. Delta Green er et varemærke og ophavsret ejet af Delta Green Partnership, brugt her under deres fan content-politik. Dette projekt er ikke tilknyttet eller godkendt af Arc Dream Publishing eller Delta Green Partnership."
+  },
   "handler": {
     "role": "Handler"
   },
