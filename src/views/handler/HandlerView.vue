@@ -15,6 +15,9 @@
       <span class="text-xs font-mono tracking-[0.2em] uppercase" style="color: #92400e;">{{ t('handler.role') }}</span>
 
       <div class="ml-auto flex items-center gap-3">
+        <span v-if="session.currentOperation?.name"
+              class="text-xs font-mono tracking-wider"
+              style="color: #3a5a44;">{{ session.currentOperation.name }}</span>
         <span v-if="session.currentSession" class="text-xs font-mono tracking-wider"
               :style="session.isActive ? 'color: #4a7c59;' : 'color: #92400e;'">
           {{ session.isActive ? t('session.active') : t('session.paused') }}

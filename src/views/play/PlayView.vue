@@ -15,6 +15,9 @@
       <span class="text-xs font-mono tracking-[0.2em] uppercase" style="color: #1f4a2a;">{{ t('play.role') }}</span>
 
       <div class="ml-auto flex items-center gap-3">
+        <span v-if="session.currentOperation?.name"
+              class="text-xs font-mono tracking-wider"
+              style="color: #3a5a44;">{{ session.currentOperation.name }}</span>
         <span v-if="session.isActive" class="text-xs font-mono tracking-wider" style="color: #4a7c59;">{{ t('session.active') }}</span>
         <span v-else-if="session.isPaused" class="text-xs font-mono tracking-wider" style="color: #92400e;">{{ t('session.paused') }}</span>
         <span v-else class="text-xs font-mono tracking-wider" style="color: #506858;">{{ t('session.none') }}</span>
