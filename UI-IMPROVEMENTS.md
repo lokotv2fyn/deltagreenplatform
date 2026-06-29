@@ -10,7 +10,7 @@
 - Presence: live mouse cursors — players see each other's position on the canvas in real time
 
 ## Platform / handler
-- Archive operation: move the entire board to "Ended operations" and start fresh on a new operation — including logic for private notes linked to archived cards
+- ~~Archive operation: move the entire board to "Ended operations" and start fresh on a new operation~~ ✓ done
 - Landing page: in-character passphrase that must be solved or traced on the page to proceed
 - Terminal card interactivity: players can type commands into the terminal card type; handler defines valid commands and responses
 
@@ -19,3 +19,4 @@
 
 ## Small stuff
 - Green icon in the browser title bar — favicon
+- Player notes - should they be archived along with the operation, or do they keep them? Maybe organized in a folder, so they can unfold like an accordion

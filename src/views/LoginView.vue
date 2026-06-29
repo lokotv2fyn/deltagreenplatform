@@ -33,8 +33,8 @@
     </div>
 
     <!-- Legal -->
-    <div class="absolute bottom-10 left-0 right-0 flex justify-center px-6">
-      <p class="text-center text-xs font-mono leading-relaxed max-w-lg" style="color: #1e2e21;">
+    <div class="fixed bottom-0 left-0 right-0 flex justify-center pb-4 px-6 pointer-events-none">
+      <p class="text-center text-xs font-mono leading-relaxed max-w-xl" style="color: #3d5040;">
         This is a fan-made, noncommercial project. Delta Green is a trademark and copyright owned by the Delta Green Partnership, used here under their fan content policy. This project is not affiliated with or endorsed by Arc Dream Publishing or the Delta Green Partnership.
       </p>
     </div>
