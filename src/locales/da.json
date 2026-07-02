@@ -76,7 +76,9 @@
     "in_deck": "Bunke",
     "empty_player": "Ingen kort er revealed endnu.",
     "empty_handler": "Ingen kort endnu.",
-    "on_table_count": "· {n} på bordet"
+    "on_table_count": "· {n} på bordet",
+    "fullscreen_enter": "Fullscreen",
+    "fullscreen_exit": "Afslut fullscreen"
   },
   "chain": {
     "title": "Rød tråd",

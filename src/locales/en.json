@@ -76,7 +76,9 @@
     "in_deck": "Deck",
     "empty_player": "No cards have been revealed yet.",
     "empty_handler": "No cards yet.",
-    "on_table_count": "· {n} on the board"
+    "on_table_count": "· {n} on the board",
+    "fullscreen_enter": "Fullscreen",
+    "fullscreen_exit": "Exit fullscreen"
   },
   "chain": {
     "title": "Red thread",

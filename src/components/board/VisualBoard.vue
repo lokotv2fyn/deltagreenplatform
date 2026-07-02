@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-full w-full overflow-hidden">
+  <div ref="rootEl" class="flex h-full w-full overflow-hidden">
 
     <!-- ─── CANVAS WRAPPER ──────────────────────────────────────────────── -->
     <div class="flex-1 relative overflow-hidden">
@@ -69,13 +69,28 @@
         </div>
       </div>
 
-      <!-- Opret-knap — udenfor scroll-area, aldrig bag sidebar -->
-      <div class="absolute bottom-6 right-6 z-30">
+      <!-- Knapper — udenfor scroll-area, aldrig bag sidebar -->
+      <div class="absolute bottom-6 right-6 z-30 flex items-center gap-2">
         <button v-if="canEdit"
                 @click="showCreate = true"
                 class="text-xs font-mono tracking-[0.1em] uppercase px-4 py-2 shadow-lg transition-colors create-btn"
                 style="background: #0d0d0d; border: 1px solid #2a2a2a; color: #555;">
           {{ t('board.create') }}
+        </button>
+        <button @click="toggleFullscreen"
+                class="flex items-center justify-center shadow-lg transition-colors fullscreen-btn"
+                style="background: #0d0d0d; border: 1px solid #2a2a2a; color: #555; width: 34px; height: 34px;"
+                :title="isFullscreen ? t('board.fullscreen_exit') : t('board.fullscreen_enter')">
+          <!-- Expand icon -->
+          <svg v-if="!isFullscreen" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
+            <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+          </svg>
+          <!-- Compress icon -->
+          <svg v-else xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/>
+            <line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/>
+          </svg>
         </button>
       </div>
     </div>
@@ -186,7 +201,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useBoardStore } from '../../stores/board'
 import { useAuthStore } from '../../stores/auth'
@@ -279,8 +294,28 @@ function cardStyle(card) {
 
 // ─── Card drag ────────────────────────────────────────────────────────────
 
+const rootEl      = ref(null)
 const containerEl = ref(null)
 const dragging    = ref(null)
+
+// ─── Fullscreen ───────────────────────────────────────────────────────────
+
+const isFullscreen = ref(false)
+
+function onFullscreenChange() {
+  isFullscreen.value = !!document.fullscreenElement
+}
+
+onMounted(() => document.addEventListener('fullscreenchange', onFullscreenChange))
+onUnmounted(() => document.removeEventListener('fullscreenchange', onFullscreenChange))
+
+async function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    await rootEl.value?.requestFullscreen()
+  } else {
+    await document.exitFullscreen()
+  }
+}
 
 function canvasCoords(e) {
   const r = containerEl.value.getBoundingClientRect()
@@ -411,6 +446,7 @@ async function deleteSelected() {
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
 .create-btn:hover { border-color: #555; color: #c4c4c4; }
+.fullscreen-btn:hover { border-color: #555; color: #c4c4c4; }
 .slide-enter-active,
 .slide-leave-active { transition: transform 0.2s ease, opacity 0.2s ease; }
 .slide-enter-from,
