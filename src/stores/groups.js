@@ -33,5 +33,54 @@ export const useGroupsStore = defineStore('groups', () => {
     return data // group id
   }
 
-  return { memberships, loading, fetchMyGroups, createGroup, joinGroup }
+  // Returns all players in the group with their assigned operation ids
+  async function fetchGroupPlayers(groupId) {
+    const { data, error } = await supabase
+      .from('group_members')
+      .select('user_id, role, profile:profiles!user_id(display_name), operation_memberships:operation_members(operation_id)')
+      .eq('group_id', groupId)
+      .eq('role', 'player')
+    if (error) throw error
+    return data ?? []
+  }
+
+  async function assignPlayer(operationId, userId) {
+    const { error } = await supabase.rpc('assign_player_to_operation', {
+      p_operation_id: operationId,
+      p_user_id: userId,
+    })
+    if (error) throw error
+  }
+
+  async function removePlayer(operationId, userId) {
+    const { error } = await supabase.rpc('remove_player_from_operation', {
+      p_operation_id: operationId,
+      p_user_id: userId,
+    })
+    if (error) throw error
+  }
+
+  async function invitePlayer(email, groupId) {
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-player`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ email, group_id: groupId }),
+      }
+    )
+    const result = await res.json()
+    if (!res.ok) throw new Error(result.error ?? 'invite_failed')
+    return result // { success, already_existed }
+  }
+
+  return {
+    memberships, loading,
+    fetchMyGroups, createGroup, joinGroup,
+    fetchGroupPlayers, assignPlayer, removePlayer, invitePlayer,
+  }
 })

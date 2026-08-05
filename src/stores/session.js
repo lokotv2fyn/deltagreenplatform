@@ -7,6 +7,11 @@ export const useSessionStore = defineStore('session', () => {
   const currentSession = ref(null)
   const loading = ref(false)
 
+  // Player: operations this user is assigned to in the current group
+  const myOperations = ref([])
+  // Handler: all non-archived operations for the current group
+  const allActiveOperations = ref([])
+
   const sessionStatus = computed(() => currentSession.value?.status ?? null)
   const isActive = computed(() => sessionStatus.value === 'active')
   const isPaused = computed(() => sessionStatus.value === 'paused')
@@ -64,14 +69,45 @@ export const useSessionStore = defineStore('session', () => {
     channel = null
   }
 
+  // For players: load all operations this user is assigned to in the group
+  async function loadMyOperations(groupId) {
+    const { data, error } = await supabase
+      .from('operation_members')
+      .select('operation:operations!operation_id(id, name, group_id, archived_at)')
+    if (!error && data) {
+      myOperations.value = data
+        .map(row => row.operation)
+        .filter(op => op && op.group_id === groupId && !op.archived_at)
+    }
+    return error
+  }
+
+  // For handlers: load all non-archived operations in the group
+  async function loadActiveOperations(groupId) {
+    const { data, error } = await supabase
+      .from('operations')
+      .select('id, name, created_at, members:operation_members(user_id)')
+      .eq('group_id', groupId)
+      .is('archived_at', null)
+      .order('created_at', { ascending: true })
+    if (!error && data) {
+      allActiveOperations.value = data
+    }
+    return error
+  }
+
   function reset() {
     unsubscribeSession()
     group.value = null
     currentSession.value = null
+    myOperations.value = []
+    allActiveOperations.value = []
   }
 
   return {
     group, currentSession, currentOperation, loading, sessionStatus, isActive, isPaused,
-    loadGroup, startSession, stopSession, subscribeSession, unsubscribeSession, reset,
+    myOperations, allActiveOperations,
+    loadGroup, startSession, stopSession, subscribeSession, unsubscribeSession,
+    loadMyOperations, loadActiveOperations, reset,
   }
 })

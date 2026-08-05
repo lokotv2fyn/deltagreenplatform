@@ -15,7 +15,17 @@
       <span class="text-xs font-mono tracking-[0.2em] uppercase" style="color: #92400e;">{{ t('handler.role') }}</span>
 
       <div class="ml-auto flex items-center gap-3">
-        <span v-if="session.currentOperation?.name"
+        <!-- Operation switcher: dropdown when multiple active, plain label when one -->
+        <select v-if="session.allActiveOperations.length > 1"
+                :value="session.currentOperation?.id"
+                @change="switchOperation($event.target.value)"
+                class="text-xs font-mono tracking-wider bg-transparent border-none focus:outline-none cursor-pointer"
+                style="color: #3a5a44;">
+          <option v-for="op in session.allActiveOperations" :key="op.id" :value="op.id">
+            {{ op.name }}
+          </option>
+        </select>
+        <span v-else-if="session.currentOperation?.name"
               class="text-xs font-mono tracking-wider"
               style="color: #3a5a44;">{{ session.currentOperation.name }}</span>
         <span v-if="session.currentSession" class="text-xs font-mono tracking-wider"
@@ -212,6 +222,57 @@
       <template v-else-if="activeTab === 'settings'">
         <div class="max-w-md space-y-10">
 
+          <!-- Players section -->
+          <section>
+            <p class="text-xs font-mono tracking-[0.2em] uppercase mb-4" style="color: #506858; border-bottom: 1px solid #1a1a1a; padding-bottom: 0.5rem;">
+              {{ t('settings.players_title') }}
+            </p>
+
+            <!-- Invite new player -->
+            <div class="mb-6 space-y-2">
+              <p class="text-xs font-mono" style="color: #3a3a3a;">{{ t('settings.invite_player_hint') }}</p>
+              <div class="flex gap-2">
+                <input v-model="inviteEmail" type="email"
+                       :placeholder="t('settings.invite_email_placeholder')"
+                       class="flex-1 font-mono text-sm px-3 py-1.5 focus:outline-none"
+                       style="background: #0d0d0d; border: 1px solid #1a1a1a; color: #c4c4c4;"
+                       @keyup.enter="doInvitePlayer" />
+                <button @click="doInvitePlayer"
+                        :disabled="!inviteEmail.trim() || inviting"
+                        class="text-xs font-mono tracking-[0.1em] uppercase px-3 py-1.5 transition-colors action-btn disabled:opacity-30 shrink-0"
+                        style="border: 1px solid #2a2a2a; color: #5e8068;">
+                  {{ inviting ? '...' : t('settings.invite_btn') }}
+                </button>
+              </div>
+              <p v-if="inviteMsg" class="text-xs font-mono" :style="inviteError ? 'color: #dc2626;' : 'color: #4a7c59;'">
+                {{ inviteMsg }}
+              </p>
+            </div>
+
+            <!-- Player list with operation assignment -->
+            <div v-if="playersLoading" class="text-xs font-mono" style="color: #506858;">{{ t('board.loading') }}</div>
+            <div v-else-if="!players.length" class="text-xs font-mono" style="color: #3a3a3a;">{{ t('settings.no_players') }}</div>
+            <div v-else class="space-y-2">
+              <div v-for="player in players" :key="player.user_id"
+                   class="flex items-center gap-3 px-3 py-2"
+                   style="background: #0d0d0d; border: 1px solid #1a1a1a;">
+                <span class="flex-1 text-sm font-mono" style="color: #888;">
+                  {{ player.profile?.display_name || t('settings.unknown_player') }}
+                </span>
+                <div class="flex flex-wrap gap-1">
+                  <button v-for="op in session.allActiveOperations" :key="op.id"
+                          @click="togglePlayerOp(player, op.id)"
+                          class="text-xs font-mono px-2 py-0.5 transition-colors"
+                          :style="isPlayerInOp(player, op.id)
+                            ? 'background: #1f4a2a; border: 1px solid #4a7c59; color: #4a7c59;'
+                            : 'background: transparent; border: 1px solid #2a2a2a; color: #506858;'">
+                    {{ op.name }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <section>
             <p class="text-xs font-mono tracking-[0.2em] uppercase mb-4" style="color: #506858; border-bottom: 1px solid #1a1a1a; padding-bottom: 0.5rem;">
               {{ t('settings.invite_title') }}
@@ -306,6 +367,26 @@
                       style="border: 1px solid #2a2a2a; color: #506858;">
                 {{ t('settings.archive_btn') }}
               </button>
+            </div>
+
+            <!-- Create parallel operation -->
+            <div class="mt-6 pt-6" style="border-top: 1px solid #1a1a1a;">
+              <p class="text-xs font-mono mb-3" style="color: #3a3a3a;">
+                {{ t('settings.create_operation_hint') }}
+              </p>
+              <div class="flex gap-2">
+                <input v-model="newParallelOpName" type="text"
+                       :placeholder="t('settings.create_operation_placeholder')"
+                       class="flex-1 font-mono text-sm px-3 py-1.5 focus:outline-none"
+                       style="background: #080808; border: 1px solid #2a2a2a; color: #c4c4c4;"
+                       @keyup.enter="doCreateOperation" />
+                <button @click="doCreateOperation"
+                        :disabled="!newParallelOpName.trim() || creatingOp"
+                        class="text-xs font-mono tracking-[0.1em] uppercase px-3 py-1.5 transition-colors action-btn disabled:opacity-30 shrink-0"
+                        style="border: 1px solid #2a2a2a; color: #5e8068;">
+                  {{ creatingOp ? '...' : t('settings.create_operation_btn') }}
+                </button>
+              </div>
             </div>
           </section>
 
@@ -433,6 +514,7 @@ import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { supabase } from '../../lib/supabase'
 import { useSessionStore } from '../../stores/session'
+import { useGroupsStore } from '../../stores/groups'
 import { useBoardStore } from '../../stores/board'
 import CardItem from '../../components/board/CardItem.vue'
 import CreateCardModal from '../../components/board/CreateCardModal.vue'
@@ -450,6 +532,7 @@ const route = useRoute()
 const groupId = route.params.groupId
 
 const session = useSessionStore()
+const groups = useGroupsStore()
 const board = useBoardStore()
 const character = useCharacterStore()
 
@@ -550,6 +633,8 @@ async function loadSettings() {
   groupName.value = session.group?.name ?? ''
   groupDescription.value = session.group?.description ?? ''
   await loadInviteData()
+  await session.loadActiveOperations(groupId)
+  await loadPlayers()
 }
 
 async function saveAutoReveal() {
@@ -656,6 +741,84 @@ async function doArchive() {
   }
 }
 
+// ─── Players & invite ────────────────────────────────────────────────────────
+const players = ref([])
+const playersLoading = ref(false)
+const inviteEmail = ref('')
+const inviting = ref(false)
+const inviteMsg = ref('')
+const inviteError = ref(false)
+
+async function loadPlayers() {
+  playersLoading.value = true
+  players.value = await groups.fetchGroupPlayers(groupId)
+  playersLoading.value = false
+}
+
+function isPlayerInOp(player, opId) {
+  return player.operation_memberships?.some(m => m.operation_id === opId) ?? false
+}
+
+async function togglePlayerOp(player, opId) {
+  if (isPlayerInOp(player, opId)) {
+    await groups.removePlayer(opId, player.user_id)
+    player.operation_memberships = player.operation_memberships.filter(m => m.operation_id !== opId)
+  } else {
+    await groups.assignPlayer(opId, player.user_id)
+    player.operation_memberships = [...(player.operation_memberships ?? []), { operation_id: opId }]
+  }
+}
+
+async function doInvitePlayer() {
+  if (!inviteEmail.value.trim()) return
+  inviting.value = true
+  inviteMsg.value = ''
+  inviteError.value = false
+  try {
+    const result = await groups.invitePlayer(inviteEmail.value.trim(), groupId)
+    inviteMsg.value = result.already_existed
+      ? t('settings.invite_already_existed')
+      : t('settings.invite_success')
+    inviteEmail.value = ''
+  } catch (err) {
+    inviteError.value = true
+    inviteMsg.value = t('settings.invite_error')
+  } finally {
+    inviting.value = false
+    setTimeout(() => { inviteMsg.value = '' }, 4000)
+  }
+}
+
+// ─── Create parallel operation ────────────────────────────────────────────────
+const newParallelOpName = ref('')
+const creatingOp = ref(false)
+
+async function doCreateOperation() {
+  if (!newParallelOpName.value.trim()) return
+  creatingOp.value = true
+  try {
+    await supabase.rpc('create_operation', {
+      p_group_id: groupId,
+      p_name: newParallelOpName.value.trim(),
+    })
+    newParallelOpName.value = ''
+    await session.loadGroup(groupId)
+    await session.loadActiveOperations(groupId)
+    await board.loadBoard(groupId, session.currentOperation?.id)
+    operationName.value = session.currentOperation?.name ?? ''
+  } finally {
+    creatingOp.value = false
+  }
+}
+
+// ─── Operation switcher ───────────────────────────────────────────────────────
+async function switchOperation(opId) {
+  await supabase.rpc('set_current_operation', { p_group_id: groupId, p_operation_id: opId })
+  await session.loadGroup(groupId)
+  await board.loadBoard(groupId, session.currentOperation?.id)
+  operationName.value = session.currentOperation?.name ?? ''
+}
+
 // ─── Agents ──────────────────────────────────────────────────────────────────
 function agentSAN(sheet) {
   const d = sheet?.data
@@ -690,6 +853,7 @@ watch(activeTab, async (tab) => {
 // ─── Lifecycle ───────────────────────────────────────────────────────────────
 onMounted(async () => {
   await session.loadGroup(groupId)
+  await session.loadActiveOperations(groupId)
   await board.loadBoard(groupId, session.currentOperation?.id)
   board.subscribeRealtime(groupId)
   session.subscribeSession(groupId)

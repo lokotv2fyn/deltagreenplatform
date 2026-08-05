@@ -197,7 +197,19 @@
     "archive_hint": "Archive the current operation and start a new one with an empty board and red thread.",
     "archive_btn": "Archive & start new →",
     "archive_dialog_title": "Archive operation & start new",
-    "archive_new_name": "New operation name"
+    "archive_new_name": "New operation name",
+    "create_operation_hint": "Start a new parallel operation without archiving the current one — useful for running separate scenarios with different players.",
+    "create_operation_placeholder": "New operation name",
+    "create_operation_btn": "Create new →",
+    "players_title": "Players",
+    "invite_player_hint": "Add a new agent's email to grant access to the platform. Send them the invite link below afterwards.",
+    "invite_email_placeholder": "agent@example.com",
+    "invite_btn": "Grant access",
+    "invite_success": "Access granted. Send the invite link to the agent.",
+    "invite_already_existed": "Agent already has access. Send them the invite link.",
+    "invite_error": "Something went wrong. Please try again.",
+    "no_players": "No players in the group yet.",
+    "unknown_player": "Unknown agent"
   },
   "archives": {
     "loading": "Loading archive…",
@@ -210,7 +222,10 @@
     "role": "Handler"
   },
   "play": {
-    "role": "Agent"
+    "role": "Agent",
+    "awaiting_assignment": "Awaiting assignment",
+    "awaiting_assignment_hint": "Your Handler has not assigned you to an operation yet. Contact your Handler.",
+    "select_operation": "Select operation"
   },
   "cardTypes": {
     "briefing": "Briefing",

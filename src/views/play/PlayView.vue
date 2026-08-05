@@ -15,9 +15,17 @@
       <span class="text-xs font-mono tracking-[0.2em] uppercase" style="color: #1f4a2a;">{{ t('play.role') }}</span>
 
       <div class="ml-auto flex items-center gap-3">
-        <span v-if="session.currentOperation?.name"
-              class="text-xs font-mono tracking-wider"
-              style="color: #3a5a44;">{{ session.currentOperation.name }}</span>
+        <button v-if="activeOperation?.name && session.myOperations.length > 1"
+              @click="activeOperationId = null"
+              class="text-xs font-mono tracking-wider transition-colors"
+              style="color: #3a5a44;"
+              onmouseenter="this.style.color='#4a7c59'"
+              onmouseleave="this.style.color='#3a5a44'">
+        {{ activeOperation.name }} ↓
+      </button>
+      <span v-else-if="activeOperation?.name"
+            class="text-xs font-mono tracking-wider"
+            style="color: #3a5a44;">{{ activeOperation.name }}</span>
         <span v-if="session.isActive" class="text-xs font-mono tracking-wider" style="color: #4a7c59;">{{ t('session.active') }}</span>
         <span v-else-if="session.isPaused" class="text-xs font-mono tracking-wider" style="color: #92400e;">{{ t('session.paused') }}</span>
         <span v-else class="text-xs font-mono tracking-wider" style="color: #506858;">{{ t('session.none') }}</span>
@@ -44,7 +52,37 @@
       {{ t('session.no_session_banner') }}
     </div>
 
-    <!-- Tabs -->
+    <!-- Awaiting assignment -->
+    <div v-if="operationsLoaded && session.myOperations.length === 0"
+         class="flex-1 flex flex-col items-center justify-center gap-4">
+      <span class="text-xs font-mono tracking-[0.2em] uppercase" style="color: #506858;">
+        {{ t('play.awaiting_assignment') }}
+      </span>
+      <span class="text-xs font-mono max-w-xs text-center leading-relaxed" style="color: #2a3a2e;">
+        {{ t('play.awaiting_assignment_hint') }}
+      </span>
+    </div>
+
+    <!-- Operation picker (2+ operations) -->
+    <div v-else-if="operationsLoaded && session.myOperations.length > 1 && !activeOperationId"
+         class="flex-1 flex flex-col items-center justify-center gap-6">
+      <span class="text-xs font-mono tracking-[0.2em] uppercase" style="color: #506858;">
+        {{ t('play.select_operation') }}
+      </span>
+      <div class="flex flex-col gap-2 w-64">
+        <button v-for="op in session.myOperations" :key="op.id"
+                @click="selectOperation(op.id)"
+                class="text-left px-4 py-3 font-mono text-sm transition-colors"
+                style="border: 1px solid #1a1a1a; color: #c4c4c4; background: #0d0d0d;"
+                onmouseenter="this.style.borderColor='#3a5a44'"
+                onmouseleave="this.style.borderColor='#1a1a1a'">
+          {{ op.name }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabs (only when an operation is active) -->
+    <template v-else-if="activeOperationId">
     <nav class="px-6 flex shrink-0" style="border-bottom: 1px solid #1a1a1a;">
       <button v-for="tab in tabs" :key="tab.id"
               @click="activeTab = tab.id"
@@ -260,6 +298,8 @@
 
     </div>
 
+    </template><!-- end operation-active template -->
+
     <!-- Reveal interrupt -->
     <RevealInterrupt v-if="interruptCard" :card="interruptCard" @close="dismissInterrupt()" />
 
@@ -309,6 +349,20 @@ const character = useCharacterStore()
 const activeTab = ref('board')
 const showCreate = ref(false)
 const autoReveal = ref(true)
+
+// ─── Operation selection ───────────────────────────────────────────────────────
+const operationsLoaded = ref(false)
+const activeOperationId = ref(null)
+const activeOperation = computed(() =>
+  session.myOperations.find(op => op.id === activeOperationId.value) ?? null
+)
+const STORAGE_KEY = `dg-active-op-${groupId}`
+
+function selectOperation(opId) {
+  activeOperationId.value = opId
+  localStorage.setItem(STORAGE_KEY, opId)
+  board.loadBoard(groupId, opId)
+}
 
 // ─── Reveal interrupt ─────────────────────────────────────────────────────────
 const revealQueue = ref([])
@@ -464,7 +518,23 @@ watch(activeTab, async (tab) => {
 
 onMounted(async () => {
   await session.loadGroup(groupId)
-  await board.loadBoard(groupId, session.currentOperation?.id)
+  await session.loadMyOperations(groupId)
+  operationsLoaded.value = true
+
+  if (session.myOperations.length === 1) {
+    // Auto-select if only one operation
+    activeOperationId.value = session.myOperations[0].id
+  } else if (session.myOperations.length > 1) {
+    // Restore last selected operation from localStorage
+    const saved = localStorage.getItem(STORAGE_KEY)
+    const stillValid = session.myOperations.find(op => op.id === saved)
+    if (stillValid) activeOperationId.value = saved
+  }
+
+  if (activeOperationId.value) {
+    await board.loadBoard(groupId, activeOperationId.value)
+  }
+
   // Wait for Vue to flush the board.cards watcher (initial load populates seenRevealedIds)
   await nextTick()
   initPhase = false

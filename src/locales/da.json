@@ -197,7 +197,19 @@
     "archive_hint": "Arkivér den aktuelle operation og start en ny med tomt board og tom rød tråd.",
     "archive_btn": "Arkivér & start ny →",
     "archive_dialog_title": "Arkivér operation & start ny",
-    "archive_new_name": "Navn på ny operation"
+    "archive_new_name": "Navn på ny operation",
+    "create_operation_hint": "Start en ny parallel operation uden at arkivere den aktuelle — nyttig til at køre separate scenarier med forskellige spillere.",
+    "create_operation_placeholder": "Navn på ny operation",
+    "create_operation_btn": "Opret ny →",
+    "players_title": "Spillere",
+    "invite_player_hint": "Tilføj en ny agents e-mail for at give adgang til platformen. Send dem invite-linket nedenfor bagefter.",
+    "invite_email_placeholder": "agent@example.com",
+    "invite_btn": "Tilføj adgang",
+    "invite_success": "Adgang tildelt. Send invite-linket til agenten.",
+    "invite_already_existed": "Agenten har allerede adgang. Send invite-linket.",
+    "invite_error": "Noget gik galt. Prøv igen.",
+    "no_players": "Ingen spillere i gruppen endnu.",
+    "unknown_player": "Ukendt agent"
   },
   "archives": {
     "loading": "Henter arkiv…",
@@ -210,7 +222,10 @@
     "role": "Handler"
   },
   "play": {
-    "role": "Agent"
+    "role": "Agent",
+    "awaiting_assignment": "Afventer tildeling",
+    "awaiting_assignment_hint": "Din Handler har ikke tilknyttet dig til en operation endnu. Kontakt din Handler.",
+    "select_operation": "Vælg operation"
   },
   "cardTypes": {
     "briefing": "Briefing",
