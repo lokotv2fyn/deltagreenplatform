@@ -35,13 +35,27 @@ export const useGroupsStore = defineStore('groups', () => {
 
   // Returns all players in the group with their assigned operation ids
   async function fetchGroupPlayers(groupId) {
-    const { data, error } = await supabase
+    const { data: members, error } = await supabase
       .from('group_members')
-      .select('user_id, role, profile:profiles!user_id(display_name), operation_memberships:operation_members(operation_id)')
+      .select('user_id, profile:profiles!user_id(display_name)')
       .eq('group_id', groupId)
       .eq('role', 'player')
     if (error) throw error
-    return data ?? []
+    if (!members?.length) return []
+
+    // Fetch operation memberships separately (no FK between group_members and operation_members)
+    const userIds = members.map(m => m.user_id)
+    const { data: memberships } = await supabase
+      .from('operation_members')
+      .select('user_id, operation_id, operation:operations!operation_id(group_id, archived_at)')
+      .in('user_id', userIds)
+
+    return members.map(m => ({
+      ...m,
+      operation_memberships: (memberships ?? [])
+        .filter(om => om.user_id === m.user_id && om.operation?.group_id === groupId && !om.operation?.archived_at)
+        .map(om => ({ operation_id: om.operation_id })),
+    }))
   }
 
   async function assignPlayer(operationId, userId) {

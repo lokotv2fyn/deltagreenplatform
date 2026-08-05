@@ -203,7 +203,7 @@
     "create_operation_btn": "Opret ny →",
     "players_title": "Spillere",
     "invite_player_hint": "Tilføj en ny agents e-mail for at give adgang til platformen. Send dem invite-linket nedenfor bagefter.",
-    "invite_email_placeholder": "agent@example.com",
+    "invite_email_placeholder": "E-mailadresse",
     "invite_btn": "Tilføj adgang",
     "invite_success": "Adgang tildelt. Send invite-linket til agenten.",
     "invite_already_existed": "Agenten har allerede adgang. Send invite-linket.",

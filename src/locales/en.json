@@ -203,7 +203,7 @@
     "create_operation_btn": "Create new →",
     "players_title": "Players",
     "invite_player_hint": "Add a new agent's email to grant access to the platform. Send them the invite link below afterwards.",
-    "invite_email_placeholder": "agent@example.com",
+    "invite_email_placeholder": "Email address",
     "invite_btn": "Grant access",
     "invite_success": "Access granted. Send the invite link to the agent.",
     "invite_already_existed": "Agent already has access. Send them the invite link.",
