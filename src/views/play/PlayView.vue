@@ -17,10 +17,7 @@
       <div class="ml-auto flex items-center gap-3">
         <button v-if="activeOperation?.name && session.myOperations.length > 1"
               @click="activeOperationId = null"
-              class="text-xs font-mono tracking-wider transition-colors"
-              style="color: #3a5a44;"
-              onmouseenter="this.style.color='#4a7c59'"
-              onmouseleave="this.style.color='#3a5a44'">
+              class="text-xs font-mono tracking-wider transition-colors op-switch-btn">
         {{ activeOperation.name }} ↓
       </button>
       <span v-else-if="activeOperation?.name"
@@ -30,10 +27,8 @@
         <span v-else-if="session.isPaused" class="text-xs font-mono tracking-wider" style="color: #92400e;">{{ t('session.paused') }}</span>
         <span v-else class="text-xs font-mono tracking-wider" style="color: #506858;">{{ t('session.none') }}</span>
         <button @click="toggleLang"
-                class="text-xs font-mono transition-colors"
-                style="color: #2a3a2e; padding-left: 0.5rem; border-left: 1px solid #1a1a1a;"
-                onmouseenter="this.style.color='#4a7c59'"
-                onmouseleave="this.style.color='#2a3a2e'">
+                class="text-xs font-mono transition-colors lang-btn"
+                style="padding-left: 0.5rem; border-left: 1px solid #1a1a1a;">
           {{ locale === 'da' ? t('lang.en') : t('lang.da') }}
         </button>
         <span class="text-xs font-mono" style="color: #2a3a2e; padding-left: 0.5rem; border-left: 1px solid #1a1a1a;">v0.513</span>
@@ -370,9 +365,10 @@ function selectOperation(opId) {
 
 async function recheckAssignment() {
   await session.loadMyOperations(groupId)
-  if (session.myOperations.length === 1) {
+  if (session.myOperations.length === 1 && !activeOperationId.value) {
     selectOperation(session.myOperations[0].id)
   }
+  // 2+ ops with no selection: template's picker renders automatically (myOperations.length > 1 && !activeOperationId)
 }
 
 // ─── Reveal interrupt ─────────────────────────────────────────────────────────
@@ -578,4 +574,8 @@ onUnmounted(() => {
 .delete-btn:hover { color: #dc2626; }
 .op-pick-btn:hover { border-color: #3a5a44; }
 .recheck-btn:hover { color: #4a7c59; border-color: #3a5a44; }
+.op-switch-btn { color: #3a5a44; }
+.op-switch-btn:hover { color: #4a7c59; }
+.lang-btn { color: #2a3a2e; }
+.lang-btn:hover { color: #4a7c59; }
 </style>

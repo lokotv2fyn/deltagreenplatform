@@ -51,10 +51,8 @@
         </button>
 
         <button @click="toggleLang"
-                class="text-xs font-mono transition-colors"
-                style="color: #2a3a2e; padding-left: 0.5rem; border-left: 1px solid #1a1a1a;"
-                onmouseenter="this.style.color='#4a7c59'"
-                onmouseleave="this.style.color='#2a3a2e'">
+                class="text-xs font-mono transition-colors lang-btn"
+                style="padding-left: 0.5rem; border-left: 1px solid #1a1a1a;">
           {{ locale === 'da' ? t('lang.en') : t('lang.da') }}
         </button>
         <span class="text-xs font-mono" style="color: #2a3a2e; padding-left: 0.5rem; border-left: 1px solid #1a1a1a;">v0.513</span>
@@ -250,6 +248,7 @@
             </div>
 
             <!-- Player list with operation assignment -->
+            <p v-if="assignError" class="text-xs font-mono mb-2" style="color: #dc2626;">{{ assignError }}</p>
             <div v-if="playersLoading" class="text-xs font-mono" style="color: #506858;">{{ t('board.loading') }}</div>
             <div v-else-if="!players.length" class="text-xs font-mono" style="color: #3a3a3a;">{{ t('settings.no_players') }}</div>
             <div v-else class="space-y-2">
@@ -747,6 +746,7 @@ const inviteEmail = ref('')
 const inviting = ref(false)
 const inviteMsg = ref('')
 const inviteError = ref(false)
+const assignError = ref('')
 
 async function loadPlayers() {
   playersLoading.value = true
@@ -759,16 +759,18 @@ function isPlayerInOp(player, opId) {
 }
 
 async function togglePlayerOp(player, opId) {
+  assignError.value = ''
   try {
     if (isPlayerInOp(player, opId)) {
       await groups.removePlayer(opId, player.user_id)
     } else {
       await groups.assignPlayer(opId, player.user_id)
     }
-    // Reload from DB to confirm actual state
     players.value = await groups.fetchGroupPlayers(groupId)
   } catch (err) {
     console.error('togglePlayerOp failed:', err)
+    assignError.value = err?.message ?? 'Operation failed'
+    setTimeout(() => { assignError.value = '' }, 5000)
   }
 }
 
@@ -876,6 +878,8 @@ onUnmounted(() => {
 .action-btn-text:hover { color: #888; }
 .session-btn-start:hover { border-color: #4a7c59; color: #86efac; }
 .session-btn-stop:hover { border-color: #5e8068; color: #888; }
+.lang-btn { color: #2a3a2e; }
+.lang-btn:hover { color: #4a7c59; }
 
 /* Operation assignment toggle buttons */
 .op-assign-btn { position: relative; }

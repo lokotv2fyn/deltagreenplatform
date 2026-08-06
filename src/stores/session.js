@@ -71,10 +71,14 @@ export const useSessionStore = defineStore('session', () => {
 
   // For players: load all operations this user is assigned to in the group
   async function loadMyOperations(groupId) {
-    // Step 1: get the operation IDs this user is assigned to (RLS filters to own rows)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { myOperations.value = []; return null }
+
+    // Step 1: get the operation IDs this user is assigned to (explicit filter + RLS)
     const { data: rows, error } = await supabase
       .from('operation_members')
       .select('operation_id')
+      .eq('user_id', user.id)
     if (error) return error
     if (!rows?.length) { myOperations.value = []; return null }
 
@@ -94,7 +98,7 @@ export const useSessionStore = defineStore('session', () => {
   async function loadActiveOperations(groupId) {
     const { data, error } = await supabase
       .from('operations')
-      .select('id, name, created_at, members:operation_members(user_id)')
+      .select('id, name, created_at')
       .eq('group_id', groupId)
       .is('archived_at', null)
       .order('created_at', { ascending: true })
