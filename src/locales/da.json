@@ -225,7 +225,8 @@
     "role": "Agent",
     "awaiting_assignment": "Afventer tildeling",
     "awaiting_assignment_hint": "Din Handler har ikke tilknyttet dig til en operation endnu. Kontakt din Handler.",
-    "select_operation": "Vælg operation"
+    "select_operation": "Vælg operation",
+    "recheck": "Tjek igen"
   },
   "cardTypes": {
     "briefing": "Briefing",

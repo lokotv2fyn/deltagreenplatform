@@ -225,7 +225,8 @@
     "role": "Agent",
     "awaiting_assignment": "Awaiting assignment",
     "awaiting_assignment_hint": "Your Handler has not assigned you to an operation yet. Contact your Handler.",
-    "select_operation": "Select operation"
+    "select_operation": "Select operation",
+    "recheck": "Check again"
   },
   "cardTypes": {
     "briefing": "Briefing",

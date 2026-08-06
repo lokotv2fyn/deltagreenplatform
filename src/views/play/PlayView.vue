@@ -61,6 +61,13 @@
       <span class="text-xs font-mono max-w-xs text-center leading-relaxed" style="color: #2a3a2e;">
         {{ t('play.awaiting_assignment_hint') }}
       </span>
+      <button @click="recheckAssignment"
+              class="text-xs font-mono tracking-[0.1em] uppercase px-3 py-1.5 transition-colors mt-2"
+              style="border: 1px solid #1a1a1a; color: #3a5a44;"
+              onmouseenter="this.style.color='#4a7c59'; this.style.borderColor='#3a5a44'"
+              onmouseleave="this.style.color='#3a5a44'; this.style.borderColor='#1a1a1a'">
+        {{ t('play.recheck') }}
+      </button>
     </div>
 
     <!-- Operation picker (2+ operations) -->
@@ -357,11 +364,19 @@ const activeOperation = computed(() =>
   session.myOperations.find(op => op.id === activeOperationId.value) ?? null
 )
 const STORAGE_KEY = `dg-active-op-${groupId}`
+let assignmentChannel = null
 
 function selectOperation(opId) {
   activeOperationId.value = opId
   localStorage.setItem(STORAGE_KEY, opId)
   board.loadBoard(groupId, opId)
+}
+
+async function recheckAssignment() {
+  await session.loadMyOperations(groupId)
+  if (session.myOperations.length === 1) {
+    selectOperation(session.myOperations[0].id)
+  }
 }
 
 // ─── Reveal interrupt ─────────────────────────────────────────────────────────
@@ -541,12 +556,21 @@ onMounted(async () => {
   await loadSettings()
   board.subscribeRealtime(groupId)
   session.subscribeSession(groupId)
+
+  // Auto-advance from awaiting screen when handler assigns this player
+  assignmentChannel = supabase
+    .channel(`op-members:${groupId}`)
+    .on('postgres_changes', {
+      event: 'INSERT', schema: 'public', table: 'operation_members',
+    }, () => recheckAssignment())
+    .subscribe()
 })
 
 onUnmounted(() => {
   board.reset()
   session.reset()
   character.reset()
+  if (assignmentChannel) supabase.removeChannel(assignmentChannel)
 })
 </script>
 
