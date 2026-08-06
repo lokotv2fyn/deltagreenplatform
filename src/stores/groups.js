@@ -43,13 +43,13 @@ export const useGroupsStore = defineStore('groups', () => {
     if (error) throw error
     if (!members?.length) return []
 
-    // Fetch operation memberships separately — plain (user_id, operation_id) pairs,
-    // no embedded join since the cross-table RLS filter caused null returns
+    // Fetch operation memberships separately (no embedded join — cross-table RLS caused nulls)
     const userIds = members.map(m => m.user_id)
-    const { data: memberships } = await supabase
+    const { data: memberships, error: memErr } = await supabase
       .from('operation_members')
       .select('user_id, operation_id')
       .in('user_id', userIds)
+    if (memErr) throw memErr
 
     return members.map(m => ({
       ...m,
@@ -60,18 +60,20 @@ export const useGroupsStore = defineStore('groups', () => {
   }
 
   async function assignPlayer(operationId, userId) {
-    const { error } = await supabase.rpc('assign_player_to_operation', {
-      p_operation_id: operationId,
-      p_user_id: userId,
-    })
-    if (error) throw error
+    // Direct insert with RLS (operation_members_insert_handler policy)
+    const { error } = await supabase
+      .from('operation_members')
+      .insert({ operation_id: operationId, user_id: userId })
+    if (error && error.code !== '23505') throw error  // ignore duplicate
   }
 
   async function removePlayer(operationId, userId) {
-    const { error } = await supabase.rpc('remove_player_from_operation', {
-      p_operation_id: operationId,
-      p_user_id: userId,
-    })
+    // Direct delete with RLS (operation_members_delete_handler policy)
+    const { error } = await supabase
+      .from('operation_members')
+      .delete()
+      .eq('operation_id', operationId)
+      .eq('user_id', userId)
     if (error) throw error
   }
 
