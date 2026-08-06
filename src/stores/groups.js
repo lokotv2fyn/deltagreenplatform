@@ -43,17 +43,18 @@ export const useGroupsStore = defineStore('groups', () => {
     if (error) throw error
     if (!members?.length) return []
 
-    // Fetch operation memberships separately (no FK between group_members and operation_members)
+    // Fetch operation memberships separately — plain (user_id, operation_id) pairs,
+    // no embedded join since the cross-table RLS filter caused null returns
     const userIds = members.map(m => m.user_id)
     const { data: memberships } = await supabase
       .from('operation_members')
-      .select('user_id, operation_id, operation:operations!operation_id(group_id, archived_at)')
+      .select('user_id, operation_id')
       .in('user_id', userIds)
 
     return members.map(m => ({
       ...m,
       operation_memberships: (memberships ?? [])
-        .filter(om => om.user_id === m.user_id && om.operation?.group_id === groupId && !om.operation?.archived_at)
+        .filter(om => om.user_id === m.user_id)
         .map(om => ({ operation_id: om.operation_id })),
     }))
   }

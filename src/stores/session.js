@@ -71,15 +71,23 @@ export const useSessionStore = defineStore('session', () => {
 
   // For players: load all operations this user is assigned to in the group
   async function loadMyOperations(groupId) {
-    const { data, error } = await supabase
+    // Step 1: get the operation IDs this user is assigned to (RLS filters to own rows)
+    const { data: rows, error } = await supabase
       .from('operation_members')
-      .select('operation:operations!operation_id(id, name, group_id, archived_at)')
-    if (!error && data) {
-      myOperations.value = data
-        .map(row => row.operation)
-        .filter(op => op && op.group_id === groupId && !op.archived_at)
-    }
-    return error
+      .select('operation_id')
+    if (error) return error
+    if (!rows?.length) { myOperations.value = []; return null }
+
+    // Step 2: fetch operation details for those IDs in this specific group
+    const opIds = rows.map(r => r.operation_id)
+    const { data: ops, error: opsError } = await supabase
+      .from('operations')
+      .select('id, name')
+      .in('id', opIds)
+      .eq('group_id', groupId)
+      .is('archived_at', null)
+    if (!opsError) myOperations.value = ops ?? []
+    return opsError
   }
 
   // For handlers: load all non-archived operations in the group
