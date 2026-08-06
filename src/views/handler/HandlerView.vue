@@ -265,6 +265,10 @@
                           :class="isPlayerInOp(player, op.id) ? 'op-assign-active' : 'op-assign-inactive'">
                     {{ isPlayerInOp(player, op.id) ? op.name + ' ×' : '+ ' + op.name }}
                   </button>
+                  <span v-if="!session.allActiveOperations.length"
+                        class="text-xs font-mono" style="color: #3a3a3a;">
+                    — ingen operationer endnu —
+                  </span>
                 </div>
               </div>
             </div>

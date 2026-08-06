@@ -22,6 +22,10 @@ export const useGroupsStore = defineStore('groups', () => {
     const { data, error } = await supabase
       .rpc('create_group', { group_name: name, group_description: description })
     if (error) throw error
+    // Auto-create initial operation so the group is usable immediately
+    const { error: opErr } = await supabase
+      .rpc('create_operation', { p_group_id: data, p_name: name })
+    if (opErr) throw opErr
     await fetchMyGroups()
     return data // group id
   }
