@@ -262,11 +262,10 @@
                 <div class="flex flex-wrap gap-1">
                   <button v-for="op in session.allActiveOperations" :key="op.id"
                           @click="togglePlayerOp(player, op.id)"
-                          class="text-xs font-mono px-2 py-0.5 transition-colors"
-                          :style="isPlayerInOp(player, op.id)
-                            ? 'background: #1f4a2a; border: 1px solid #4a7c59; color: #4a7c59;'
-                            : 'background: transparent; border: 1px solid #2a2a2a; color: #506858;'">
-                    {{ op.name }}
+                          class="op-assign-btn text-xs font-mono px-2 py-0.5 transition-colors"
+                          :class="isPlayerInOp(player, op.id) ? 'op-assign-active' : 'op-assign-inactive'">
+                    <span class="op-assign-label">{{ op.name }}</span>
+                    <span class="op-assign-remove">{{ op.name }} ×</span>
                   </button>
                 </div>
               </div>
@@ -760,12 +759,16 @@ function isPlayerInOp(player, opId) {
 }
 
 async function togglePlayerOp(player, opId) {
-  if (isPlayerInOp(player, opId)) {
-    await groups.removePlayer(opId, player.user_id)
-    player.operation_memberships = player.operation_memberships.filter(m => m.operation_id !== opId)
-  } else {
-    await groups.assignPlayer(opId, player.user_id)
-    player.operation_memberships = [...(player.operation_memberships ?? []), { operation_id: opId }]
+  try {
+    if (isPlayerInOp(player, opId)) {
+      await groups.removePlayer(opId, player.user_id)
+    } else {
+      await groups.assignPlayer(opId, player.user_id)
+    }
+    // Reload from DB to confirm actual state
+    players.value = await groups.fetchGroupPlayers(groupId)
+  } catch (err) {
+    console.error('togglePlayerOp failed:', err)
   }
 }
 
@@ -873,4 +876,13 @@ onUnmounted(() => {
 .action-btn-text:hover { color: #888; }
 .session-btn-start:hover { border-color: #4a7c59; color: #86efac; }
 .session-btn-stop:hover { border-color: #5e8068; color: #888; }
+
+/* Operation assignment toggle buttons */
+.op-assign-btn { position: relative; }
+.op-assign-btn .op-assign-remove { display: none; }
+.op-assign-active { background: #1f4a2a; border: 1px solid #4a7c59; color: #4a7c59; }
+.op-assign-inactive { background: transparent; border: 1px solid #2a2a2a; color: #506858; }
+.op-assign-active:hover { background: #3a0a0a; border-color: #dc2626; color: #dc2626; }
+.op-assign-active:hover .op-assign-label { display: none; }
+.op-assign-active:hover .op-assign-remove { display: inline; }
 </style>

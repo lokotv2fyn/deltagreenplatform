@@ -62,10 +62,8 @@
         {{ t('play.awaiting_assignment_hint') }}
       </span>
       <button @click="recheckAssignment"
-              class="text-xs font-mono tracking-[0.1em] uppercase px-3 py-1.5 transition-colors mt-2"
-              style="border: 1px solid #1a1a1a; color: #3a5a44;"
-              onmouseenter="this.style.color='#4a7c59'; this.style.borderColor='#3a5a44'"
-              onmouseleave="this.style.color='#3a5a44'; this.style.borderColor='#1a1a1a'">
+              class="recheck-btn text-xs font-mono tracking-[0.1em] uppercase px-3 py-1.5 transition-colors mt-2"
+              style="border: 1px solid #1a1a1a; color: #3a5a44;">
         {{ t('play.recheck') }}
       </button>
     </div>
@@ -79,10 +77,8 @@
       <div class="flex flex-col gap-2 w-64">
         <button v-for="op in session.myOperations" :key="op.id"
                 @click="selectOperation(op.id)"
-                class="text-left px-4 py-3 font-mono text-sm transition-colors"
-                style="border: 1px solid #1a1a1a; color: #c4c4c4; background: #0d0d0d;"
-                onmouseenter="this.style.borderColor='#3a5a44'"
-                onmouseleave="this.style.borderColor='#1a1a1a'">
+                class="op-pick-btn text-left px-4 py-3 font-mono text-sm transition-colors"
+                style="border: 1px solid #1a1a1a; color: #c4c4c4; background: #0d0d0d;">
           {{ op.name }}
         </button>
       </div>
@@ -580,4 +576,6 @@ onUnmounted(() => {
 .action-btn:hover { border-color: #5e8068; color: #c4c4c4; }
 .action-btn-text:hover { color: #888; }
 .delete-btn:hover { color: #dc2626; }
+.op-pick-btn:hover { border-color: #3a5a44; }
+.recheck-btn:hover { color: #4a7c59; border-color: #3a5a44; }
 </style>
