@@ -863,6 +863,14 @@ watch(activeTab, async (tab) => {
 onMounted(async () => {
   await session.loadGroup(groupId)
   await session.loadActiveOperations(groupId)
+
+  // Bootstrap: if the group has no operation yet, create one with the group name.
+  if (!session.currentOperation && session.allActiveOperations.length === 0 && session.group?.name) {
+    await supabase.rpc('create_operation', { p_group_id: groupId, p_name: session.group.name })
+    await session.loadGroup(groupId)
+    await session.loadActiveOperations(groupId)
+  }
+
   await board.loadBoard(groupId, session.currentOperation?.id)
   board.subscribeRealtime(groupId)
   session.subscribeSession(groupId)
