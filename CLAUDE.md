@@ -12,8 +12,29 @@ before writing any code.
 
 ## Core concepts
 
-- **One board per group** — not per session. A "session" is only a pause
-  flag; the board survives a session stop unchanged.
+- **A group has one or more operations; boards are scoped per operation, not
+  per group or per session.** `groups.current_operation_id` points at
+  whichever operation is currently in view. A group is guaranteed to have at
+  least one operation from the moment it's created (`create_group` creates it
+  atomically) — there is never a "no operation yet" state to handle. Every
+  operation after the first is created explicitly by the Handler (archive +
+  start new, or create a parallel one) and must have a name that's unique
+  within the group. **Naming convention:** the first operation is always
+  named after the group; every later one requires the Handler to type a name.
+- **"Session" is only a pause flag, and is fully orthogonal to operations.**
+  It never scopes or partitions data — the board survives a session stop
+  unchanged, and switching the current operation never touches session
+  state or vice versa. A session's only job is gating whether players can
+  write to the board (add cards, move pieces, add private notes): active vs.
+  paused.
+- **Group membership is the only access control — no per-operation
+  assignment.** Everyone in a group's `group_members` can see whichever
+  operation is currently active for that group; there is no mechanism to
+  show different operations to different players within the same group.
+  Handler Settings has a Group Members panel to view/remove members; adding
+  members is invite-only (no manual assignment step). See
+  `NAMING_PROBLEM.md` for the full history of why this replaced the earlier
+  per-operation `operation_members` model.
 - **RLS enforces access** — not client-side logic. Handler sees everything
   including spoilers; players see only revealed cards + their own. Private
   notes (author + handler only) are the core requirement that makes RLS

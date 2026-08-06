@@ -188,7 +188,7 @@
     "auto_reveal_label": "Auto-reveal player-created cards",
     "auto_reveal_hint": "When on: cards created by players are shown to everyone immediately",
     "group_name_title": "Group name",
-    "group_name_placeholder": "Name of the operation",
+    "group_name_placeholder": "Name of the group",
     "group_desc_title": "Description",
     "group_desc_placeholder": "Shown to agents on the front page",
     "save": "Save",
@@ -210,7 +210,8 @@
     "invite_already_existed": "Agent already has access. Send them the invite link.",
     "invite_error": "Something went wrong. Please try again.",
     "no_players": "No players in the group yet.",
-    "unknown_player": "Unknown agent"
+    "unknown_player": "Unknown agent",
+    "remove_member_btn": "Remove from group"
   },
   "archives": {
     "loading": "Loading archive…",
@@ -224,9 +225,6 @@
   },
   "play": {
     "role": "Agent",
-    "awaiting_assignment": "Awaiting assignment",
-    "awaiting_assignment_hint": "Your Handler has not assigned you to an operation yet. Contact your Handler.",
-    "select_operation": "Select operation",
     "recheck": "Check again"
   },
   "cardTypes": {

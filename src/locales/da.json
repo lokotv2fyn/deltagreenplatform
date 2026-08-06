@@ -188,7 +188,7 @@
     "auto_reveal_label": "Auto-reveal spiller-oprettede kort",
     "auto_reveal_hint": "Når aktiv: kort oprettet af spillere vises for alle med det samme",
     "group_name_title": "Gruppenavn",
-    "group_name_placeholder": "Navn på operationen",
+    "group_name_placeholder": "Navn på gruppen",
     "group_desc_title": "Beskrivelse",
     "group_desc_placeholder": "Vises for agenter på forsiden",
     "save": "Gem",
@@ -210,7 +210,8 @@
     "invite_already_existed": "Agenten har allerede adgang. Send invite-linket.",
     "invite_error": "Noget gik galt. Prøv igen.",
     "no_players": "Ingen spillere i gruppen endnu.",
-    "unknown_player": "Ukendt agent"
+    "unknown_player": "Ukendt agent",
+    "remove_member_btn": "Fjern fra gruppe"
   },
   "archives": {
     "loading": "Henter arkiv…",
@@ -224,9 +225,6 @@
   },
   "play": {
     "role": "Agent",
-    "awaiting_assignment": "Afventer tildeling",
-    "awaiting_assignment_hint": "Din Handler har ikke tilknyttet dig til en operation endnu. Kontakt din Handler.",
-    "select_operation": "Vælg operation",
     "recheck": "Tjek igen"
   },
   "cardTypes": {

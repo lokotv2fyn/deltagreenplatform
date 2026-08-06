@@ -19,13 +19,10 @@ export const useGroupsStore = defineStore('groups', () => {
   }
 
   async function createGroup(name, description = '') {
+    // create_group creates the first operation atomically (named after the group)
     const { data, error } = await supabase
       .rpc('create_group', { group_name: name, group_description: description })
     if (error) throw error
-    // Auto-create initial operation so the group is usable immediately
-    const { error: opErr } = await supabase
-      .rpc('create_operation', { p_group_id: data, p_name: name })
-    if (opErr) throw opErr
     await fetchMyGroups()
     return data // group id
   }
@@ -37,7 +34,7 @@ export const useGroupsStore = defineStore('groups', () => {
     return data // group id
   }
 
-  // Returns all players in the group with their assigned operation ids
+  // Returns all players in the group
   async function fetchGroupPlayers(groupId) {
     const { data: members, error } = await supabase
       .from('group_members')
@@ -45,39 +42,12 @@ export const useGroupsStore = defineStore('groups', () => {
       .eq('group_id', groupId)
       .eq('role', 'player')
     if (error) throw error
-    if (!members?.length) return []
-
-    // Fetch operation memberships separately (no embedded join — cross-table RLS caused nulls)
-    const userIds = members.map(m => m.user_id)
-    const { data: memberships, error: memErr } = await supabase
-      .from('operation_members')
-      .select('user_id, operation_id')
-      .in('user_id', userIds)
-    if (memErr) throw memErr
-
-    return members.map(m => ({
-      ...m,
-      operation_memberships: (memberships ?? [])
-        .filter(om => om.user_id === m.user_id)
-        .map(om => ({ operation_id: om.operation_id })),
-    }))
+    return members ?? []
   }
 
-  async function assignPlayer(operationId, userId) {
-    // Direct insert with RLS (operation_members_insert_handler policy)
+  async function removeMember(groupId, userId) {
     const { error } = await supabase
-      .from('operation_members')
-      .insert({ operation_id: operationId, user_id: userId })
-    if (error && error.code !== '23505') throw error  // ignore duplicate
-  }
-
-  async function removePlayer(operationId, userId) {
-    // Direct delete with RLS (operation_members_delete_handler policy)
-    const { error } = await supabase
-      .from('operation_members')
-      .delete()
-      .eq('operation_id', operationId)
-      .eq('user_id', userId)
+      .rpc('remove_group_member', { p_group_id: groupId, p_user_id: userId })
     if (error) throw error
   }
 
@@ -102,6 +72,6 @@ export const useGroupsStore = defineStore('groups', () => {
   return {
     memberships, loading,
     fetchMyGroups, createGroup, joinGroup,
-    fetchGroupPlayers, assignPlayer, removePlayer, invitePlayer,
+    fetchGroupPlayers, removeMember, invitePlayer,
   }
 })

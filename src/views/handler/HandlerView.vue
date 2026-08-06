@@ -247,8 +247,8 @@
               </p>
             </div>
 
-            <!-- Player list with operation assignment -->
-            <p v-if="assignError" class="text-xs font-mono mb-2" style="color: #dc2626;">{{ assignError }}</p>
+            <!-- Group members -->
+            <p v-if="removeMemberError" class="text-xs font-mono mb-2" style="color: #dc2626;">{{ removeMemberError }}</p>
             <div v-if="playersLoading" class="text-xs font-mono" style="color: #506858;">{{ t('board.loading') }}</div>
             <div v-else-if="!players.length" class="text-xs font-mono" style="color: #3a3a3a;">{{ t('settings.no_players') }}</div>
             <div v-else class="space-y-2">
@@ -258,18 +258,11 @@
                 <span class="flex-1 text-sm font-mono" style="color: #888;">
                   {{ player.profile?.display_name || t('settings.unknown_player') }}
                 </span>
-                <div class="flex flex-wrap gap-1">
-                  <button v-for="op in session.allActiveOperations" :key="op.id"
-                          @click="togglePlayerOp(player, op.id)"
-                          class="text-xs font-mono px-2 py-0.5 transition-colors"
-                          :class="isPlayerInOp(player, op.id) ? 'op-assign-active' : 'op-assign-inactive'">
-                    {{ isPlayerInOp(player, op.id) ? op.name + ' ×' : '+ ' + op.name }}
-                  </button>
-                  <span v-if="!session.allActiveOperations.length"
-                        class="text-xs font-mono" style="color: #3a3a3a;">
-                    — ingen operationer endnu —
-                  </span>
-                </div>
+                <button @click="doRemoveMember(player)"
+                        class="text-xs font-mono px-2 py-0.5 transition-colors"
+                        style="border: 1px solid #2a2a2a; color: #506858;">
+                  {{ t('settings.remove_member_btn') }}
+                </button>
               </div>
             </div>
           </section>
@@ -706,11 +699,7 @@ async function loadArchives() {
 }
 
 async function openArchiveDialog() {
-  const { count } = await supabase
-    .from('operations')
-    .select('id', { count: 'exact', head: true })
-    .eq('group_id', groupId)
-  newOpName.value = `Operation ${(count ?? 0) + 1}`
+  newOpName.value = ''
   showArchiveDialog.value = true
 }
 
@@ -722,6 +711,7 @@ async function saveOperationName() {
     p_name: name,
   })
   await session.loadGroup(groupId)
+  await session.loadActiveOperations(groupId)
 }
 
 async function doArchive() {
@@ -750,7 +740,7 @@ const inviteEmail = ref('')
 const inviting = ref(false)
 const inviteMsg = ref('')
 const inviteError = ref(false)
-const assignError = ref('')
+const removeMemberError = ref('')
 
 async function loadPlayers() {
   playersLoading.value = true
@@ -758,23 +748,15 @@ async function loadPlayers() {
   playersLoading.value = false
 }
 
-function isPlayerInOp(player, opId) {
-  return player.operation_memberships?.some(m => m.operation_id === opId) ?? false
-}
-
-async function togglePlayerOp(player, opId) {
-  assignError.value = ''
+async function doRemoveMember(player) {
+  removeMemberError.value = ''
   try {
-    if (isPlayerInOp(player, opId)) {
-      await groups.removePlayer(opId, player.user_id)
-    } else {
-      await groups.assignPlayer(opId, player.user_id)
-    }
+    await groups.removeMember(groupId, player.user_id)
     players.value = await groups.fetchGroupPlayers(groupId)
   } catch (err) {
-    console.error('togglePlayerOp failed:', err)
-    assignError.value = err?.message ?? 'Operation failed'
-    setTimeout(() => { assignError.value = '' }, 5000)
+    console.error('doRemoveMember failed:', err)
+    removeMemberError.value = err?.message ?? 'Operation failed'
+    setTimeout(() => { removeMemberError.value = '' }, 5000)
   }
 }
 
@@ -863,14 +845,6 @@ watch(activeTab, async (tab) => {
 onMounted(async () => {
   await session.loadGroup(groupId)
   await session.loadActiveOperations(groupId)
-
-  // Bootstrap: if the group has no operation yet, create one with the group name.
-  if (!session.currentOperation && session.allActiveOperations.length === 0 && session.group?.name) {
-    await supabase.rpc('create_operation', { p_group_id: groupId, p_name: session.group.name })
-    await session.loadGroup(groupId)
-    await session.loadActiveOperations(groupId)
-  }
-
   await board.loadBoard(groupId, session.currentOperation?.id)
   board.subscribeRealtime(groupId)
   session.subscribeSession(groupId)
@@ -892,10 +866,4 @@ onUnmounted(() => {
 .session-btn-stop:hover { border-color: #5e8068; color: #888; }
 .lang-btn { color: #2a3a2e; }
 .lang-btn:hover { color: #4a7c59; }
-
-/* Operation assignment toggle buttons */
-.op-assign-active { background: #1f4a2a; border: 1px solid #4a7c59; color: #4a7c59; }
-.op-assign-inactive { background: transparent; border: 1px solid #2a2a2a; color: #506858; }
-.op-assign-active:hover { background: #3a0a0a; border-color: #dc2626; color: #dc2626; }
-.op-assign-inactive:hover { border-color: #3a5a44; color: #888; }
 </style>

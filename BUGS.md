@@ -7,8 +7,7 @@
 - **Bug 6 — Display name:** Players shown with email prefix as display name instead of a chosen name — fixed: profile tab in PlayView lets players set their own display name
 - **Bug 7 — Comms card label:** Field was labelled "Tidspunkt (in-fiction)" — fixed: label is now just "Tidspunkt"
 - **Handler view: cards on board / in deck** — fixed: `onBoard`/`inDeck` now uses `revealed` instead of `card_positions.minimized`. Revealed = on board, unrevealed = in deck. Matches handler expectations and Delta Green game flow.
-
-## Open
+- **Naming for group/operation/session was confusing and inconsistent; per-operation player assignment was misleading (didn't actually gate visibility since migration 014, only worked for the current operation)** — fixed: `create_group` now creates the first operation atomically (named after the group), operation names are unique per group, operation rename now actually refreshes the switcher, and per-operation `operation_members` was removed in favor of a group-level Members panel (view + remove, revokes access to the whole group). See `NAMING_PROBLEM.md` for the full diagnosis and decisions.
 
 **Reveal interrupt**
 Full-screen interrupt for players on handler reveal does not work — the card appears on the canvas but the interrupt overlay is never triggered. See `REVEAL_PROBLEM.md` for full diagnosis and next steps.
@@ -16,6 +15,8 @@ Full-screen interrupt for players on handler reveal does not work — the card a
 Kort i dashboard: Når de er unrevealed, skal der ikke stå 'spoiler'. Nok nærmere 'unrevealed'.
 
 Bigger bug: Red thread calculates wrong and attaches end of red thread off in relation to the card. See `REDTHREAD_PROBLEM.md` for full diagnosis and next step.
+
+## Open
 
 Console bugs:
 - der er en
