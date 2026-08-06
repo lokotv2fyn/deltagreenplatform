@@ -343,7 +343,7 @@
 
           <section>
             <p class="text-xs font-mono tracking-[0.2em] uppercase mb-4" style="color: #506858; border-bottom: 1px solid #1a1a1a; padding-bottom: 0.5rem;">
-              {{ t('settings.operation_title') }}
+              {{ t('settings.operation_rename_title') }}
             </p>
             <input v-model="operationName" type="text"
                    class="w-full font-mono text-sm px-3 py-2 focus:outline-none mb-2"
@@ -730,6 +730,7 @@ async function doArchive() {
       p_new_name: newOpName.value.trim(),
     })
     await session.loadGroup(groupId)
+    await session.loadActiveOperations(groupId)
     await board.loadBoard(groupId, session.currentOperation?.id)
     operationName.value = session.currentOperation?.name ?? ''
     showArchiveDialog.value = false

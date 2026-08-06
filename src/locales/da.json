@@ -193,6 +193,7 @@
     "group_desc_placeholder": "Vises for agenter på forsiden",
     "save": "Gem",
     "operation_title": "Aktuel operation",
+    "operation_rename_title": "Omdøb aktuel operation",
     "operation_name_placeholder": "Operationsnavn",
     "archive_hint": "Arkivér den aktuelle operation og start en ny med tomt board og tom rød tråd.",
     "archive_btn": "Arkivér & start ny →",

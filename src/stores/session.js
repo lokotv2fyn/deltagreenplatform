@@ -7,9 +7,7 @@ export const useSessionStore = defineStore('session', () => {
   const currentSession = ref(null)
   const loading = ref(false)
 
-  // Player: operations this user is assigned to in the current group
-  const myOperations = ref([])
-  // Handler: all non-archived operations for the current group
+  // Handler: all non-archived operations for the current group (used for switcher dropdown)
   const allActiveOperations = ref([])
 
   const sessionStatus = computed(() => currentSession.value?.status ?? null)
@@ -69,31 +67,6 @@ export const useSessionStore = defineStore('session', () => {
     channel = null
   }
 
-  // For players: load all operations this user is assigned to in the group
-  async function loadMyOperations(groupId) {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { myOperations.value = []; return null }
-
-    // Step 1: get the operation IDs this user is assigned to (explicit filter + RLS)
-    const { data: rows, error } = await supabase
-      .from('operation_members')
-      .select('operation_id')
-      .eq('user_id', user.id)
-    if (error) return error
-    if (!rows?.length) { myOperations.value = []; return null }
-
-    // Step 2: fetch operation details for those IDs in this specific group
-    const opIds = rows.map(r => r.operation_id)
-    const { data: ops, error: opsError } = await supabase
-      .from('operations')
-      .select('id, name')
-      .in('id', opIds)
-      .eq('group_id', groupId)
-      .is('archived_at', null)
-    if (!opsError) myOperations.value = ops ?? []
-    return opsError
-  }
-
   // For handlers: load all non-archived operations in the group
   async function loadActiveOperations(groupId) {
     const { data, error } = await supabase
@@ -112,14 +85,13 @@ export const useSessionStore = defineStore('session', () => {
     unsubscribeSession()
     group.value = null
     currentSession.value = null
-    myOperations.value = []
     allActiveOperations.value = []
   }
 
   return {
     group, currentSession, currentOperation, loading, sessionStatus, isActive, isPaused,
-    myOperations, allActiveOperations,
+    allActiveOperations,
     loadGroup, startSession, stopSession, subscribeSession, unsubscribeSession,
-    loadMyOperations, loadActiveOperations, reset,
+    loadActiveOperations, reset,
   }
 })

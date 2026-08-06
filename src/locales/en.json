@@ -193,6 +193,7 @@
     "group_desc_placeholder": "Shown to agents on the front page",
     "save": "Save",
     "operation_title": "Current operation",
+    "operation_rename_title": "Rename current operation",
     "operation_name_placeholder": "Operation name",
     "archive_hint": "Archive the current operation and start a new one with an empty board and red thread.",
     "archive_btn": "Archive & start new →",
