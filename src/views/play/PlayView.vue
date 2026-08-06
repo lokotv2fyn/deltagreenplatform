@@ -46,7 +46,7 @@
     </div>
 
     <!-- Tabs -->
-    <template v-if="session.currentOperation">
+    <template v-if="session.group">
     <nav class="px-6 flex shrink-0" style="border-bottom: 1px solid #1a1a1a;">
       <button v-for="tab in tabs" :key="tab.id"
               @click="activeTab = tab.id"
@@ -474,9 +474,7 @@ watch(() => session.currentOperation?.id, (opId) => {
 onMounted(async () => {
   await session.loadGroup(groupId)
 
-  if (session.currentOperation?.id) {
-    await board.loadBoard(groupId, session.currentOperation.id)
-  }
+  await board.loadBoard(groupId, session.currentOperation?.id ?? null)
 
   // Wait for Vue to flush the board.cards watcher (initial load populates seenRevealedIds)
   await nextTick()
