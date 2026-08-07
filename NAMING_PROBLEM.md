@@ -302,7 +302,7 @@ making it look like the button silently does nothing. This is a real,
 isolated bug, not a symptom of the deeper naming-convention mess — it's a
 missing one-line store refresh.
 
-**Player assignment is "kinda useless"** (per `BUGS.md`'s Open list): a
+**Player assignment is "kinda useless"** (reported directly by Louise): a
 player can only be assigned to the *current* operation, not to other
 operations or across groups. Confirmed by reading `groups.js`'s
 `assignPlayer`/`removePlayer` and `HandlerView.vue`'s `togglePlayerOp` — the

@@ -60,7 +60,9 @@ frontend code.
 - Database changes: write a migration in `supabase/migrations/`, run it
   manually against the Supabase project, and update `PLATFORM-ARCHITECTURE.md`
   in parallel.
-- Open bugs: see `BUGS.md`. Reveal interrupt is parked — see `REVEAL_PROBLEM.md`.
+- Open bugs, roadmap, and UI backlog: see `STATUS.md` — the single tracker
+  for what's next. Deep technical diagnoses for specific hard bugs live in
+  their own files (e.g. `REVEAL_PROBLEM.md`) and are linked from there.
 
 ---
 

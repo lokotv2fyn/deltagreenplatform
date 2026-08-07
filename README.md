@@ -46,7 +46,7 @@ See `PLATFORM-ARCHITECTURE.md` for the full data model, RLS policies, and routin
 
 ## Status
 
-v0.513 — core board, auth, character sheets, and Delta Green UI aesthetic are complete. See `ROADMAP.md` for what's next.
+v0.513 — core board, auth, character sheets, and Delta Green UI aesthetic are complete. See `STATUS.md` for what's next.
 
 ---
 
