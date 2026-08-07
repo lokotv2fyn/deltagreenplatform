@@ -187,6 +187,8 @@
     "player_cards_title": "Player cards",
     "auto_reveal_label": "Auto-reveal player-created cards",
     "auto_reveal_hint": "When on: cards created by players are shown to everyone immediately",
+    "stat_cap_title": "Stat point budget",
+    "stat_cap_hint": "Shown as the total on each agent's character sheet. Raise or lower per exception as needed.",
     "group_name_title": "Group name",
     "group_name_placeholder": "Name of the group",
     "group_desc_title": "Description",
@@ -225,7 +227,8 @@
   },
   "play": {
     "role": "Agent",
-    "recheck": "Check again"
+    "recheck": "Check again",
+    "unsaved_confirm": "You have unsaved changes on your character sheet. Leave without saving?"
   },
   "cardTypes": {
     "briefing": "Briefing",

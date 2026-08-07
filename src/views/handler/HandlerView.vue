@@ -309,6 +309,25 @@
 
           <section>
             <p class="text-xs font-mono tracking-[0.2em] uppercase mb-4" style="color: #506858; border-bottom: 1px solid #1a1a1a; padding-bottom: 0.5rem;">
+              {{ t('settings.stat_cap_title') }}
+            </p>
+            <div class="flex items-center gap-2">
+              <input v-model.number="statPointCap" type="number" min="0"
+                     class="w-24 font-mono text-sm px-3 py-2 focus:outline-none"
+                     style="background: #0d0d0d; border: 1px solid #1a1a1a; color: #c4c4c4;" />
+              <button @click="saveStatPointCap"
+                      class="text-xs font-mono tracking-[0.1em] uppercase px-3 py-1.5 transition-colors action-btn"
+                      style="border: 1px solid #2a2a2a; color: #5e8068;">
+                {{ t('settings.save') }}
+              </button>
+            </div>
+            <p class="text-xs font-mono mt-1" style="color: #506858;">
+              {{ t('settings.stat_cap_hint') }}
+            </p>
+          </section>
+
+          <section>
+            <p class="text-xs font-mono tracking-[0.2em] uppercase mb-4" style="color: #506858; border-bottom: 1px solid #1a1a1a; padding-bottom: 0.5rem;">
               {{ t('settings.group_name_title') }}
             </p>
             <input v-model="groupName" type="text"
@@ -597,6 +616,7 @@ function actionLabel(action) {
 
 // ─── Settings ────────────────────────────────────────────────────────────────
 const autoReveal = ref(true)
+const statPointCap = ref(72)
 const groupName = ref('')
 const groupDescription = ref('')
 const copied = ref(false)
@@ -620,10 +640,13 @@ async function loadInviteData() {
 async function loadSettings() {
   const { data } = await supabase
     .from('group_settings')
-    .select('auto_reveal_player_cards')
+    .select('auto_reveal_player_cards, stat_point_cap')
     .eq('group_id', groupId)
     .single()
-  if (data) autoReveal.value = data.auto_reveal_player_cards
+  if (data) {
+    autoReveal.value = data.auto_reveal_player_cards
+    statPointCap.value = data.stat_point_cap
+  }
   groupName.value = session.group?.name ?? ''
   groupDescription.value = session.group?.description ?? ''
   await loadInviteData()
@@ -635,6 +658,13 @@ async function saveAutoReveal() {
   await supabase
     .from('group_settings')
     .update({ auto_reveal_player_cards: autoReveal.value })
+    .eq('group_id', groupId)
+}
+
+async function saveStatPointCap() {
+  await supabase
+    .from('group_settings')
+    .update({ stat_point_cap: statPointCap.value })
     .eq('group_id', groupId)
 }
 

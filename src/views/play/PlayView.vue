@@ -49,7 +49,7 @@
     <template v-if="session.group">
     <nav class="px-6 flex shrink-0" style="border-bottom: 1px solid #1a1a1a;">
       <button v-for="tab in tabs" :key="tab.id"
-              @click="activeTab = tab.id"
+              @click="switchTab(tab.id)"
               class="text-xs font-mono tracking-[0.12em] uppercase px-4 py-2.5 transition-colors tab-btn"
               :style="activeTab === tab.id
                 ? 'border-bottom: 1px solid #888; color: #c4c4c4; margin-bottom: -1px;'
@@ -191,7 +191,8 @@
         <div v-if="character.loading" class="text-xs font-mono" style="color: #506858;">
           {{ t('board.loading') }}
         </div>
-        <CharacterSheet v-else :group-id="groupId" :initial-data="character.mySheet?.data ?? null" />
+        <CharacterSheet v-else :group-id="groupId" :initial-data="character.mySheet?.data ?? null"
+                        @update:dirty="characterDirty = $event" />
       </template>
 
       <!-- ─── ARCHIVES ────────────────────────────────────────────── -->
@@ -313,6 +314,15 @@ const character = useCharacterStore()
 const activeTab = ref('board')
 const showCreate = ref(false)
 const autoReveal = ref(true)
+const characterDirty = ref(false)
+
+function switchTab(id) {
+  if (activeTab.value === 'character' && characterDirty.value && id !== 'character') {
+    if (!window.confirm(t('play.unsaved_confirm'))) return
+    characterDirty.value = false
+  }
+  activeTab.value = id
+}
 
 // ─── Reveal interrupt ─────────────────────────────────────────────────────────
 const revealQueue = ref([])
@@ -461,7 +471,7 @@ function formatDate(iso) {
 // ─── Lifecycle ───────────────────────────────────────────────────────────────
 watch(activeTab, async (tab) => {
   if (tab === 'notes') loadNotes()
-  if (tab === 'character') character.loadMySheet(groupId)
+  if (tab === 'character') character.loadMySheet(groupId, auth.user.id)
   if (tab === 'profil') displayName.value = auth.profile?.display_name ?? ''
   if (tab === 'archives') await loadArchives()
 })

@@ -187,6 +187,8 @@
     "player_cards_title": "Spiller-kort",
     "auto_reveal_label": "Auto-reveal spiller-oprettede kort",
     "auto_reveal_hint": "Når aktiv: kort oprettet af spillere vises for alle med det samme",
+    "stat_cap_title": "Stat-pointbudget",
+    "stat_cap_hint": "Vises som totalen på hver agents karakterark. Justér op eller ned efter behov.",
     "group_name_title": "Gruppenavn",
     "group_name_placeholder": "Navn på gruppen",
     "group_desc_title": "Beskrivelse",
@@ -225,7 +227,8 @@
   },
   "play": {
     "role": "Agent",
-    "recheck": "Tjek igen"
+    "recheck": "Tjek igen",
+    "unsaved_confirm": "Du har ugemte ændringer på dit karakterark. Forlad uden at gemme?"
   },
   "cardTypes": {
     "briefing": "Briefing",

@@ -8,12 +8,13 @@ export const useCharacterStore = defineStore('character', () => {
   const loading = ref(false)
   const saving = ref(false)
 
-  async function loadMySheet(groupId) {
+  async function loadMySheet(groupId, userId) {
     loading.value = true
     const { data } = await supabase
       .from('character_sheets')
       .select('*')
       .eq('group_id', groupId)
+      .eq('user_id', userId)
       .maybeSingle()
     mySheet.value = data
     loading.value = false

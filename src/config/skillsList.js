@@ -43,11 +43,48 @@ export const SKILLS = [
   { key: 'unnatural',         label: 'Unnatural',                   base: 0  },
 ]
 
+// Effective base = the fixed printed Base (skill.base, never stored) unless
+// the skill is marked as a Profession skill, in which case the manually-
+// entered Professional Baserate replaces it entirely. Bonus and Earned
+// always add on top of whichever base applies. See PLAN.md Phase 1 item 3.
+export function skillTotal(skill, entry) {
+  if (!entry) return skill.base
+  const effectiveBase = entry.isProfessional ? (entry.professionalBaserate || 0) : skill.base
+  return effectiveBase + entry.bonus + entry.earned
+}
+
 export function defaultSkills() {
   const s = {}
   for (const skill of SKILLS) {
-    s[skill.key] = skill.base
+    s[skill.key] = { bonus: 0, earned: 0, isProfessional: false, professionalBaserate: 0, pendingCheck: false }
     if (skill.specify) s[`${skill.key}Specify`] = ''
+  }
+  return s
+}
+
+// Merges saved skills data into the new shape, converting already-saved
+// flat numbers (the old shape) into `bonus` with isProfessional forced true
+// and professionalBaserate 0, so the total stays numerically unchanged
+// (0 + oldNumber + 0 — fixed base still gets excluded) — see PLAN.md's
+// "Decided: legacy skill handling."
+export function mergeSkillsData(savedSkills) {
+  const s = {}
+  for (const skill of SKILLS) {
+    const raw = savedSkills?.[skill.key]
+    if (raw && typeof raw === 'object') {
+      s[skill.key] = {
+        bonus: raw.bonus ?? raw.professional ?? 0,
+        earned: raw.earned ?? 0,
+        isProfessional: raw.isProfessional ?? true,
+        professionalBaserate: raw.professionalBaserate ?? 0,
+        pendingCheck: raw.pendingCheck ?? false,
+      }
+    } else if (typeof raw === 'number') {
+      s[skill.key] = { bonus: raw, earned: 0, isProfessional: true, professionalBaserate: 0, pendingCheck: false }
+    } else {
+      s[skill.key] = { bonus: 0, earned: 0, isProfessional: false, professionalBaserate: 0, pendingCheck: false }
+    }
+    if (skill.specify) s[`${skill.key}Specify`] = savedSkills?.[`${skill.key}Specify`] ?? ''
   }
   return s
 }
