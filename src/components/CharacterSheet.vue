@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-8 max-w-2xl">
+  <div class="space-y-8 max-w-4xl">
 
     <!-- Download-skabelon -->
     <div v-if="!readonly" class="flex items-center justify-between pb-2 border-b border-neutral-800">
@@ -98,72 +98,76 @@
     <!-- ─── SKILLS ─────────────────────────────────────────────────── -->
     <section>
       <h3 class="section-heading">Skills</h3>
-      <div class="grid grid-cols-2 gap-x-6 gap-y-0">
-        <div v-for="n in 2" :key="'skills-header-' + n"
-             class="flex items-center gap-1.5 pb-1.5 mb-0.5 border-b border-neutral-700">
-          <span class="flex-1"></span>
-          <span class="text-xs text-neutral-500 shrink-0 w-4 text-center" title="Profession skill">★</span>
-          <span class="text-xs text-neutral-500 shrink-0 w-11 text-center">Base</span>
-          <span class="text-xs text-neutral-500 shrink-0 w-9 text-center">Bonus</span>
-          <span class="text-xs text-neutral-500 shrink-0 w-10 text-center">Earn</span>
-          <span class="text-xs text-neutral-500 shrink-0 w-6 text-center">Tot</span>
-          <span v-if="session.isActive" class="text-xs text-neutral-500 shrink-0 w-4 text-center" title="Failed roll this session">✓</span>
-        </div>
-        <div v-for="skill in SKILLS" :key="skill.key"
-             class="flex flex-col py-1.5 border-b border-neutral-900/80 skill-row">
-          <div class="flex items-center gap-1.5">
-            <span class="text-xs text-neutral-400 flex-1 leading-tight truncate">
-              {{ skill.label }}
-              <input v-if="skill.specify"
-                     v-model="form.skills[`${skill.key}Specify`]"
-                     :disabled="readonly"
-                     class="bg-transparent border-b border-neutral-700 text-neutral-400 text-xs w-14 ml-1 focus:outline-none focus:border-neutral-500 disabled:cursor-default"
-                     placeholder="spec." />
-            </span>
-            <button @click="toggleProfessionalSkill(skill.key)" :disabled="readonly" type="button"
-                    title="Mark as one of this character's Profession skills — bonus points on a Profession skill replace the base rate instead of stacking with it"
-                    class="text-xs shrink-0 w-4 leading-none disabled:cursor-default skill-star-btn"
-                    :class="form.skills[skill.key].isProfessional ? 'skill-star-active' : 'skill-star-inactive'">
-              {{ form.skills[skill.key].isProfessional ? '★' : '☆' }}
-            </button>
-            <span v-if="!form.skills[skill.key].isProfessional"
-                  class="text-xs text-neutral-400 shrink-0 w-11 text-center tabular-nums" title="Base">{{ skill.base }}</span>
-            <input v-else v-model.number="form.skills[skill.key].professionalBaserate" :disabled="readonly"
-                   type="number" min="0" title="Professional baserate (manual — replaces base)"
-                   class="w-11 bg-neutral-900 border border-yellow-900 rounded px-1.5 py-0.5 text-sm text-center font-mono text-yellow-500 focus:outline-none focus:border-yellow-600 disabled:opacity-60 disabled:cursor-default shrink-0" />
-            <button @click="cycleBonus(skill.key)" :disabled="readonly" type="button"
-                    title="Bonus — click to cycle 0 → +20 → +40"
-                    class="text-xs font-mono shrink-0 w-9 py-0.5 rounded transition-colors disabled:opacity-50 disabled:cursor-default skill-prof-btn"
-                    :class="form.skills[skill.key].bonus > 0 ? 'skill-prof-active' : 'skill-prof-inactive'">
-              +{{ form.skills[skill.key].bonus }}
-            </button>
-            <input v-model.number="form.skills[skill.key].earned" :disabled="readonly"
-                   type="number" min="0" title="Earned points"
-                   class="w-10 bg-neutral-900 border border-neutral-800 rounded px-1.5 py-0.5 text-sm text-center font-mono text-neutral-300 focus:outline-none focus:border-neutral-600 disabled:opacity-60 disabled:cursor-default shrink-0" />
-            <span class="text-xs font-mono font-bold shrink-0 w-6 text-right tabular-nums" style="color: #c4c4c4;" title="Total">
-              {{ skillTotal(skill, form.skills[skill.key]) }}
-            </span>
-            <input v-if="session.isActive" type="checkbox" :disabled="readonly"
-                   v-model="form.skills[skill.key].pendingCheck"
-                   title="Check if you used this skill and failed the roll this session"
-                   class="shrink-0 w-4 h-4 accent-neutral-600" />
+      <div class="text-xs font-mono mb-3 text-neutral-400">
+        Bonus: {{ bonusTotal }} / {{ bonusPointCap }}
+      </div>
+      <div class="grid grid-cols-2 gap-x-6">
+        <div v-for="col in skillColumns" :key="col.id">
+          <div class="flex items-center gap-1.5 pb-1.5 mb-0.5 border-b border-neutral-700">
+            <span v-if="session.isActive" class="text-xs text-neutral-500 shrink-0 w-4 text-center" title="Failed roll this session">✓</span>
+            <span class="flex-1"></span>
+            <span class="text-xs text-neutral-500 shrink-0 w-4 text-center" title="Profession skill">★</span>
+            <span class="text-xs text-neutral-500 shrink-0 w-11 text-center">Base</span>
+            <span class="text-xs text-neutral-500 shrink-0 w-9 text-center">Bonus</span>
+            <span class="text-xs text-neutral-500 shrink-0 w-10 text-center">Earn</span>
+            <span class="text-xs text-neutral-500 shrink-0 w-6 text-center">Tot</span>
           </div>
-          <div v-if="form.skills[skill.key].pendingCheck" class="flex items-center gap-1.5 pt-1 pl-1">
-            <span class="text-xs text-neutral-500 shrink-0">Failed roll —</span>
-            <button @click="rollEarned(skill.key)" :disabled="readonly" type="button"
-                    class="text-xs font-mono shrink-0 px-2 py-0.5 rounded transition-colors bp-calc-btn"
-                    style="border: 1px solid #1a1a1a; color: #506858;">
-              🎲 Roll 1d4
-            </button>
-            <span class="text-xs text-neutral-600 shrink-0">or</span>
-            <input v-model.number="manualRollInputs[skill.key]" :disabled="readonly"
-                   type="number" min="1" max="4" placeholder="1-4"
-                   class="w-10 bg-neutral-900 border border-neutral-800 rounded px-1 py-0.5 text-xs text-center font-mono text-neutral-300 focus:outline-none focus:border-neutral-600 disabled:opacity-60 disabled:cursor-default shrink-0" />
-            <button @click="applyManualRoll(skill.key)" :disabled="readonly" type="button"
-                    class="text-xs font-mono shrink-0 px-2 py-0.5 rounded transition-colors bp-calc-btn"
-                    style="border: 1px solid #1a1a1a; color: #506858;">
-              Apply
-            </button>
+          <div v-for="skill in col.skills" :key="skill.key"
+               class="flex flex-col py-1.5 border-b border-neutral-900/80 skill-row">
+            <div class="flex items-center gap-1.5">
+              <input v-if="session.isActive" type="checkbox" :disabled="readonly"
+                     v-model="form.skills[skill.key].pendingCheck"
+                     title="Check if you used this skill and failed the roll this session"
+                     class="shrink-0 w-4 h-4 accent-neutral-600" />
+              <span class="text-xs text-neutral-400 flex-1 leading-tight truncate">
+                {{ skill.label }}
+                <input v-if="skill.specify"
+                       v-model="form.skills[`${skill.key}Specify`]"
+                       :disabled="readonly"
+                       class="bg-transparent border-b border-neutral-700 text-neutral-400 text-xs w-20 ml-1 focus:outline-none focus:border-neutral-500 disabled:cursor-default"
+                       placeholder="spec." />
+              </span>
+              <button @click="toggleProfessionalSkill(skill.key)" :disabled="readonly" type="button"
+                      title="Mark as one of this character's Profession skills — bonus points on a Profession skill replace the base rate instead of stacking with it"
+                      class="text-xs shrink-0 w-4 leading-none disabled:cursor-default skill-star-btn"
+                      :class="form.skills[skill.key].isProfessional ? 'skill-star-active' : 'skill-star-inactive'">
+                {{ form.skills[skill.key].isProfessional ? '★' : '☆' }}
+              </button>
+              <span v-if="!form.skills[skill.key].isProfessional"
+                    class="text-xs text-neutral-400 shrink-0 w-11 text-center tabular-nums" title="Base">{{ skill.base }}</span>
+              <input v-else v-model.number="form.skills[skill.key].professionalBaserate" :disabled="readonly"
+                     type="number" min="0" title="Professional baserate (manual — replaces base)"
+                     class="w-11 bg-neutral-900 border border-yellow-900 rounded px-1.5 py-0.5 text-sm text-center font-mono text-yellow-500 focus:outline-none focus:border-yellow-600 disabled:opacity-60 disabled:cursor-default shrink-0" />
+              <button @click="cycleBonus(skill.key)" :disabled="readonly" type="button"
+                      title="Bonus — click to cycle 0 → +20 → +40"
+                      class="text-xs font-mono shrink-0 w-9 py-0.5 rounded transition-colors disabled:opacity-50 disabled:cursor-default skill-prof-btn"
+                      :class="form.skills[skill.key].bonus > 0 ? 'skill-prof-active' : 'skill-prof-inactive'">
+                +{{ form.skills[skill.key].bonus }}
+              </button>
+              <input v-model.number="form.skills[skill.key].earned" :disabled="readonly"
+                     type="number" min="0" title="Earned points"
+                     class="w-10 bg-neutral-900 border border-neutral-800 rounded px-1.5 py-0.5 text-sm text-center font-mono text-neutral-300 focus:outline-none focus:border-neutral-600 disabled:opacity-60 disabled:cursor-default shrink-0" />
+              <span class="text-xs font-mono font-bold shrink-0 w-6 text-right tabular-nums" style="color: #c4c4c4;" title="Total">
+                {{ skillTotal(skill, form.skills[skill.key]) }}
+              </span>
+            </div>
+            <div v-if="form.skills[skill.key].pendingCheck" class="flex items-center gap-1.5 pt-1 pl-1">
+              <span class="text-xs text-neutral-500 shrink-0">Failed roll —</span>
+              <button @click="rollEarned(skill.key)" :disabled="readonly" type="button"
+                      class="text-xs font-mono shrink-0 px-2 py-0.5 rounded transition-colors bp-calc-btn"
+                      style="border: 1px solid #1a1a1a; color: #506858;">
+                🎲 Roll 1d4
+              </button>
+              <span class="text-xs text-neutral-600 shrink-0">or</span>
+              <input v-model.number="manualRollInputs[skill.key]" :disabled="readonly"
+                     type="number" min="1" max="4" placeholder="1-4"
+                     class="w-10 bg-neutral-900 border border-neutral-800 rounded px-1 py-0.5 text-xs text-center font-mono text-neutral-300 focus:outline-none focus:border-neutral-600 disabled:opacity-60 disabled:cursor-default shrink-0" />
+              <button @click="applyManualRoll(skill.key)" :disabled="readonly" type="button"
+                      class="text-xs font-mono shrink-0 px-2 py-0.5 rounded transition-colors bp-calc-btn"
+                      style="border: 1px solid #1a1a1a; color: #506858;">
+                Apply
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -187,6 +191,61 @@
               @click="addBond"
               class="mt-2 text-xs text-neutral-400 hover:text-neutral-300 transition-colors">
         + Tilføj bond
+      </button>
+    </section>
+
+    <!-- ─── WEAPONS ────────────────────────────────────────────────── -->
+    <section>
+      <h3 class="section-heading">Weapons</h3>
+      <div class="space-y-3">
+        <div v-for="(weapon, i) in form.weapons" :key="i"
+             class="p-3 space-y-2" style="border: 1px solid #1a1a1a;">
+          <div class="flex items-center gap-2">
+            <input v-model="weapon.name" :disabled="readonly"
+                   class="sheet-input flex-1" placeholder="Weapon" />
+            <button v-if="!readonly" @click="removeWeapon(i)"
+                    class="text-neutral-500 hover:text-red-500 transition-colors shrink-0 px-1 text-sm">×</button>
+          </div>
+          <div class="grid grid-cols-4 gap-2">
+            <div>
+              <label class="field-label">Skill %</label>
+              <input v-model.number="weapon.skill" :disabled="readonly"
+                     type="number" min="0" class="sheet-input text-center font-mono w-full" />
+            </div>
+            <div>
+              <label class="field-label">Base Range</label>
+              <input v-model="weapon.range" :disabled="readonly" class="sheet-input text-center font-mono w-full" />
+            </div>
+            <div>
+              <label class="field-label">Damage</label>
+              <input v-model="weapon.damage" :disabled="readonly" class="sheet-input text-center font-mono w-full" />
+            </div>
+            <div>
+              <label class="field-label">Armor Piercing</label>
+              <input v-model="weapon.armorPiercing" :disabled="readonly" class="sheet-input text-center font-mono w-full" />
+            </div>
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="field-label">Lethality %</label>
+              <input v-model.number="weapon.lethality" :disabled="readonly"
+                     type="number" min="0" class="sheet-input text-center font-mono w-full" />
+            </div>
+            <div>
+              <label class="field-label">Kill Radius</label>
+              <input v-model="weapon.killRadius" :disabled="readonly" class="sheet-input text-center font-mono w-full" />
+            </div>
+            <div>
+              <label class="field-label">Ammo</label>
+              <input v-model="weapon.ammo" :disabled="readonly" class="sheet-input text-center font-mono w-full" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <button v-if="!readonly && form.weapons.length < 5"
+              @click="addWeapon"
+              class="mt-2 text-xs text-neutral-400 hover:text-neutral-300 transition-colors">
+        + Tilføj weapon
       </button>
     </section>
 
@@ -233,6 +292,7 @@ const auth = useAuthStore()
 const session = useSessionStore()
 
 const statPointCap = ref(72)
+const bonusPointCap = ref(160)
 function handleBeforeUnload(e) {
   if (isDirty.value) {
     e.preventDefault()
@@ -284,6 +344,9 @@ function buildForm(data) {
     bonds: data?.bonds?.length
       ? data.bonds.map(b => ({ ...b }))
       : [{ name: '', score: 4 }],
+    weapons: data?.weapons?.length
+      ? data.weapons.map(w => ({ ...w }))
+      : [],
     notes: data?.notes ?? '',
   }
 }
@@ -322,6 +385,22 @@ const statsTotal = computed(() =>
   BASE_STATS.reduce((sum, stat) => sum + (form.value.stats[stat.key] || 0), 0)
 )
 
+const bonusTotal = computed(() =>
+  SKILLS.reduce((sum, skill) => sum + (form.value.skills[skill.key]?.bonus || 0), 0)
+)
+
+// Down-then-across column split so the alphabetical SKILLS order reads
+// top-to-bottom in column 1, then top-to-bottom in column 2 — CSS grid's
+// default row-wise auto-flow would otherwise interleave the alphabet
+// across both columns.
+const skillColumns = computed(() => {
+  const half = Math.ceil(SKILLS.length / 2)
+  return [
+    { id: 'a', skills: SKILLS.slice(0, half) },
+    { id: 'b', skills: SKILLS.slice(half) },
+  ]
+})
+
 function cycleBonus(key) {
   const entry = form.value.skills[key]
   entry.bonus = entry.bonus === 0 ? 20 : entry.bonus === 20 ? 40 : 0
@@ -355,6 +434,16 @@ function addBond() {
 }
 function removeBond(i) {
   form.value.bonds.splice(i, 1)
+}
+
+function addWeapon() {
+  form.value.weapons.push({
+    name: '', skill: 0, range: '', damage: '',
+    armorPiercing: '', lethality: 0, killRadius: '', ammo: '',
+  })
+}
+function removeWeapon(i) {
+  form.value.weapons.splice(i, 1)
 }
 
 const savedAt = ref('')

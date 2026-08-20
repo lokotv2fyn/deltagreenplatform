@@ -67,6 +67,70 @@ same as 1a/1b were held until confirmed live.
 
 ---
 
+## Phase 1.2 — Character sheet skills polish (small, pre-Phase 2)
+
+**✅ Built, all 4 items.** No new migration — `character_sheets.data` stays
+schemaless JSONB (same pattern as items 8/9/10). Verified via `npm run
+build` (clean) and a Playwright pass against `/demo` → Agents → an
+expanded read-only sheet (screenshot-confirmed: both new skills present,
+zero console errors besides a pre-existing unrelated 400 from the demo's
+fake `groupId` hitting `group_settings`, not something this batch
+touched). Item 2 (checkbox move) is code-reviewed only, same as items
+8/9 in the batch above — `/demo` renders read-only with no active
+session, so `session.isActive` is always false there and the checkbox
+never renders regardless of position.
+
+1. **Add the two missing skills; give "specify" skills more room.**
+   Cross-checked `src/config/skillsList.js` (41 entries) against the
+   official skill-set list on `assets/character-sheet.pdf` (42 named
+   skills + a separate "Foreign Languages and Other Skills" block). Missing
+   from code:
+   - **Craft** (specify, base 0%) — e.g. "Craft: Carpentry"
+   - **Science** (specify, base 0%) — e.g. "Science: Chemistry"
+
+   Everything else already matches, including the existing specify skills
+   (Art, Foreign Language, Military Science, Pilot).
+
+   Root cause of the cramped specify fields: the specify `<input>` is
+   squeezed inline right after the skill label (`w-14`, 56px —
+   `CharacterSheet.vue:117-121`) inside an already-tight `grid-cols-2` row
+   that also has to fit ★/Base/Bonus/Earn/Tot and, during a session, the
+   checkbox. Fix: widen the sheet's content column (`max-w-2xl` → e.g.
+   `max-w-4xl`) and widen the specify input itself so labels like "Foreign
+   Language: ___" or "Military Science: ___" aren't truncated.
+
+2. **Move the session checkbox to the left of the row.** `pendingCheck`
+   checkbox currently renders at the far right of each skill row
+   (`CharacterSheet.vue:146-149`). On the physical sheet the checkbox comes
+   first, before the skill name (`☐ Accounting (10%)`). Move it to the
+   start of the row — same `session.isActive` condition, header row (`✓`
+   column, `CharacterSheet.vue:110`) moves to match.
+
+3. **Discrete, non-punishing bonus-point counter.** Add a `Bonus: X/160`
+   counter under the Skills heading, mirroring the existing `Total:
+   {{statsTotal}} / {{statPointCap}}` pattern (`CharacterSheet.vue:55-58`) —
+   but per Louise's spec it never turns red over cap, since Handlers
+   sometimes hand out free bonus points outside the normal budget. New
+   computed `bonusTotal` sums `form.skills[key].bonus` across all skills.
+   Built with the cap hardcoded at 160 (`bonusPointCap` ref, no migration) —
+   can be made Handler-editable later like `stat_point_cap` if wanted.
+
+4. **Column flow: down-then-across, not row-wise.** `SKILLS` in
+   `skillsList.js` is already in alphabetical order — the problem is purely
+   the render. The skills grid is a plain `grid-cols-2` with one `v-for`
+   (`CharacterSheet.vue:101-169`), and CSS grid's default auto-flow fills
+   row-wise: col 1 gets item 1, col 2 gets item 2, col 1 gets item 3, etc.
+   That interleaves the alphabet across both columns instead of reading
+   down column 1 (A→ mid) then down column 2 (mid→Z), like a printed
+   two-column list. Fix: split `SKILLS` into two halves (first half /
+   second half by count) and render each half as its own column — either
+   two separate `v-for` blocks side by side, or `grid-auto-flow: column`
+   with an explicit row count. Needs to keep working after Craft/Science
+   are added (item 1) and stay correct if skills are ever added/removed
+   later, so split by computed length rather than a hardcoded index.
+
+---
+
 ## Phase 2 — Handler board lock
 
 New `group_settings.board_locked boolean default false` column + toggle,
@@ -153,6 +217,13 @@ written).
 > Let's build Phase 1 from `PLAN.md` — character sheet improvements. Start
 > with the stats total counter and the Bond CHA default (both small), then
 > the Base/Professional/Earned skills breakdown.
+
+**Phase 1.2:**
+> Let's build Phase 1.2 from `PLAN.md` — the character sheet skills polish.
+> Add Craft and Science, widen the sheet for specify fields, move the
+> session checkbox to the left, add the bonus-point counter (hardcoded 80
+> cap unless I say otherwise), and fix the skills grid to flow
+> down-then-across alphabetically instead of row-wise.
 
 **Phase 2:**
 > Let's build Phase 2 from `PLAN.md` — the Handler board lock. Include
