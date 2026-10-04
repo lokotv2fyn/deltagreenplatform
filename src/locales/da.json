@@ -161,7 +161,8 @@
   "agents": {
     "loading": "Henter agenter…",
     "empty": "Ingen agenter har oprettet karakterark endnu.",
-    "no_sheet": "{name} har ikke udfyldt karakterark endnu."
+    "no_sheet": "{name} har ikke udfyldt karakterark endnu.",
+    "export_pdf": "Eksportér PDF"
   },
   "activity": {
     "loading": "Henter log…",

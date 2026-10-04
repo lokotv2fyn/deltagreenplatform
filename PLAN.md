@@ -131,6 +131,43 @@ never renders regardless of position.
 
 ---
 
+## Phase 1.3 — Skills grid visual tuning + total math bug (small, pre-Phase 2)
+
+Noted by Louise, not yet built. Items 1–2 are visual-only (no migration
+expected); item 3 is a correctness bug that needs live repro before a fix.
+
+1. **Earn column is too visually loud.** The `earned` field/roll UI (🎲 Roll
+   button, manual input + Apply, the `pendingCheck` checkbox row added in
+   Phase 1 item 8) draws more visual weight than the rest of the skill row.
+   Needs a quieter treatment — smaller/muted styling — without losing the
+   Phase 1 item 8 functionality.
+2. **Total skill value should be more visible.** The per-skill total
+   (`Tot`) column is currently under-emphasized relative to the surrounding
+   columns; make it stand out more (e.g. bolder or higher-contrast) so the
+   final number a player rolls against is easy to spot at a glance.
+3. **🐛 Wrong skill total on ★ Professional skills — not a single case, seen
+   on multiple skills with different numbers (Base 50 + Bonus 20 → 520 was
+   just the first example Louise spotted).** Isolated to Professional
+   skills specifically (confirmed by Louise) — plain non-Professional
+   skills are fine. No skill in `SKILLS`
+   (`src/config/skillsList.js:2-46`) has a fixed `base` of 50 — highest
+   printed base is 40 (Unarmed Combat) — so any "Base 50"-and-up display
+   is coming from a ★-marked skill's manually-typed `professionalBaserate`
+   input (`CharacterSheet.vue:138-140`). `skillTotal()`
+   (`skillsList.js:52-56`) is `effectiveBase + entry.bonus + entry.earned`
+   where `effectiveBase = entry.professionalBaserate` when `isProfessional`
+   — plain numeric addition, so the formula alone doesn't explain the
+   inflated totals; since it recurs across different skills/values rather
+   than one fluke, suspect something systemic to the Professional path
+   (`professionalBaserate` storage/load, `toggleProfessionalSkill`, or the
+   `mergeSkillsData` branch at `skillsList.js:76-83`) rather than a one-off
+   typo. **Next step: go through every ★ Professional skill on the actual
+   sheet and log Base/Bonus/Earn/Tot as displayed vs. what's actually
+   stored** (devtools/Vue inspector on `entry.professionalBaserate`,
+   `entry.bonus`, `entry.earned`) to find the pattern, before touching code.
+
+---
+
 ## Phase 2 — Handler board lock
 
 New `group_settings.board_locked boolean default false` column + toggle,
@@ -224,6 +261,13 @@ written).
 > session checkbox to the left, add the bonus-point counter (hardcoded 80
 > cap unless I say otherwise), and fix the skills grid to flow
 > down-then-across alphabetically instead of row-wise.
+
+**Phase 1.3:**
+> Let's build Phase 1.3 from `PLAN.md` — skills grid visual tuning. Tone
+> down the Earn column so it's less visually loud, make the skill Tot
+> (total) column more visible/prominent, and track down the skill total
+> math bug (Base 50 + Bonus 20 showing 520 instead of 70) — I'll tell you
+> which skill(s) it happens on.
 
 **Phase 2:**
 > Let's build Phase 2 from `PLAN.md` — the Handler board lock. Include

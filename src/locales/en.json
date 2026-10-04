@@ -161,7 +161,8 @@
   "agents": {
     "loading": "Loading agents…",
     "empty": "No agents have created a character sheet yet.",
-    "no_sheet": "{name} has not filled in a character sheet yet."
+    "no_sheet": "{name} has not filled in a character sheet yet.",
+    "export_pdf": "Export PDF"
   },
   "activity": {
     "loading": "Loading log…",

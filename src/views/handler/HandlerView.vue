@@ -174,7 +174,16 @@
               <p v-if="!agent.sheet" class="text-xs font-mono" style="color: #506858;">
                 {{ t('agents.no_sheet', { name: agent.displayName }) }}
               </p>
-              <CharacterSheet v-else :group-id="groupId" :initial-data="agent.sheet.data" :readonly="true" />
+              <template v-else>
+                <div class="flex justify-end mb-4">
+                  <button @click="exportAgentPdf(agent.sheet.data, agent.displayName)"
+                          class="text-xs font-mono tracking-[0.1em] uppercase px-3 py-1.5 transition-colors export-btn"
+                          style="border: 1px solid #1a1a1a; color: #6b8578;">
+                    ↓ {{ t('agents.export_pdf') }}
+                  </button>
+                </div>
+                <CharacterSheet :group-id="groupId" :initial-data="agent.sheet.data" :readonly="true" />
+              </template>
             </div>
           </div>
         </div>
@@ -533,6 +542,7 @@ import CardItem from '../../components/board/CardItem.vue'
 import CreateCardModal from '../../components/board/CreateCardModal.vue'
 import TheChain from '../../components/board/TheChain.vue'
 import CharacterSheet from '../../components/CharacterSheet.vue'
+import { exportAgentPdf } from '../../lib/exportAgentPdf'
 import { useCharacterStore } from '../../stores/character'
 import VisualBoard from '../../components/board/VisualBoard.vue'
 import ArchiveBoard from '../../components/board/ArchiveBoard.vue'
@@ -891,6 +901,7 @@ onUnmounted(() => {
 .back-link:hover { color: #dc2626; }
 .tab-btn:hover { color: #888; }
 .action-btn:hover { border-color: #5e8068; color: #c4c4c4; }
+.export-btn:hover { border-color: #2a2a2a; color: #888; }
 .action-btn-text:hover { color: #888; }
 .session-btn-start:hover { border-color: #4a7c59; color: #86efac; }
 .session-btn-stop:hover { border-color: #5e8068; color: #888; }

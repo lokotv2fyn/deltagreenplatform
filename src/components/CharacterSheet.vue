@@ -146,25 +146,25 @@
               </button>
               <input v-model.number="form.skills[skill.key].earned" :disabled="readonly"
                      type="number" min="0" title="Earned points"
-                     class="w-10 bg-neutral-900 border border-neutral-800 rounded px-1.5 py-0.5 text-sm text-center font-mono text-neutral-300 focus:outline-none focus:border-neutral-600 disabled:opacity-60 disabled:cursor-default shrink-0" />
-              <span class="text-xs font-mono font-bold shrink-0 w-6 text-right tabular-nums" style="color: #c4c4c4;" title="Total">
+                     class="w-10 bg-neutral-800 border border-neutral-700 rounded px-1.5 py-0.5 text-sm text-center font-mono text-neutral-300 focus:outline-none focus:border-neutral-600 disabled:opacity-60 disabled:cursor-default shrink-0 skill-earned-input" />
+              <span class="text-xs font-mono font-bold shrink-0 w-6 text-right tabular-nums skill-total" style="color: #ffffff; font-size: 1.2em; font-weight: bold;" title="Total">
                 {{ skillTotal(skill, form.skills[skill.key]) }}
               </span>
             </div>
             <div v-if="form.skills[skill.key].pendingCheck" class="flex items-center gap-1.5 pt-1 pl-1">
               <span class="text-xs text-neutral-500 shrink-0">Failed roll —</span>
               <button @click="rollEarned(skill.key)" :disabled="readonly" type="button"
-                      class="text-xs font-mono shrink-0 px-2 py-0.5 rounded transition-colors bp-calc-btn"
-                      style="border: 1px solid #1a1a1a; color: #506858;">
+                      class="text-xs font-mono shrink-0 px-2 py-0.5 rounded transition-colors"
+                      style="border: 1px solid #3a3a3a; color: #888; background: transparent; border-radius: 4px;">
                 🎲 Roll 1d4
               </button>
               <span class="text-xs text-neutral-600 shrink-0">or</span>
               <input v-model.number="manualRollInputs[skill.key]" :disabled="readonly"
                      type="number" min="1" max="4" placeholder="1-4"
-                     class="w-10 bg-neutral-900 border border-neutral-800 rounded px-1 py-0.5 text-xs text-center font-mono text-neutral-300 focus:outline-none focus:border-neutral-600 disabled:opacity-60 disabled:cursor-default shrink-0" />
+                     class="w-10 bg-neutral-800 border border-neutral-700 rounded px-1 py-0.5 text-xs text-center font-mono text-neutral-300 focus:outline-none focus:border-neutral-600 disabled:opacity-60 disabled:cursor-default shrink-0" />
               <button @click="applyManualRoll(skill.key)" :disabled="readonly" type="button"
-                      class="text-xs font-mono shrink-0 px-2 py-0.5 rounded transition-colors bp-calc-btn"
-                      style="border: 1px solid #1a1a1a; color: #506858;">
+                      class="text-xs font-mono shrink-0 px-2 py-0.5 rounded transition-colors"
+                      style="border: 1px solid #3a3a3a; color: #888; background: transparent; border-radius: 4px;">
                 Apply
               </button>
             </div>
@@ -504,5 +504,21 @@ async function save() {
 .skill-star-inactive:hover:not(:disabled) { color: #999; }
 .skill-star-active { color: #eab308; }
 .skill-star-active:hover:not(:disabled) { color: #fde047; }
-.skill-row:hover { background: #1c1c1c; }
+.skill-row:hover { 
+  background: #1c1c1c; 
+}
+/* Make the earned column much less visually prominent */
+.skill-earned-input {
+  background: #141414 !important;
+  border: 1px solid #3a3a3a !important;
+  box-shadow: none !important;
+}
+.skill-earned-input {
+  background: #141414 !important;
+  border: 1px solid #2a2a2a !important;
+}
+.skill-total {
+  color: #ffffff !important;
+  font-weight: bold;
+}
 </style>
